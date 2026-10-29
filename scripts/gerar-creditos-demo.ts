@@ -6,7 +6,7 @@ const creditos: Record<string, Credito> = JSON.parse(readFileSync("public/produt
 const esc = (s: string) => s.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]!);
 const linhas = Object.entries(creditos)
   .sort(([a], [b]) => a.localeCompare(b))
-  .map(([slug, c]) => `<tr><td><img src="produtos/${slug}.webp" alt="" width="64" height="48" loading="lazy"></td><td><a href="${esc(c.pagina)}" target="_blank" rel="noopener">${esc(c.arquivo)}</a></td><td>${esc(c.autor)}</td><td>${esc(c.licenca)}</td></tr>`)
+  .map(([slug, c]) => `<tr><td><img src="../public/produtos/${slug}.webp" alt="" width="64" height="48" loading="lazy"></td><td><a href="${esc(c.pagina)}" target="_blank" rel="noopener">${esc(c.arquivo)}</a></td><td>${esc(c.autor)}</td><td>${esc(c.licenca)}</td></tr>`)
   .join("\n");
 writeFileSync(
   "site-demo/creditos.html",

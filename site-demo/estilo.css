@@ -82,7 +82,7 @@ main { min-width: 0; container-type: inline-size; }
 .hero h2 { margin: 8px 0 0; font: 800 30px/1.1 var(--titulos); }
 @media (min-width: 640px) { .hero h2 { font-size: 36px; } }
 .hero h2 em { font-style: normal; color: var(--amarelo); }
-.hero p { margin: 6px 0 0; color: #dbeafe; font-size: 15px; max-width: 560px; }
+.hero-texto p { margin: 6px 0 0; color: #dbeafe; font-size: 15px; max-width: 560px; }
 .carrossel { position: relative; display: flex; gap: 12px; overflow-x: auto; scroll-snap-type: x mandatory; padding: 0 20px 20px; list-style: none; margin: 0; }
 @media (min-width: 640px) { .carrossel { padding: 0 28px 28px; } }
 .carrossel > li { width: 168px; flex-shrink: 0; scroll-snap-align: start; }

@@ -57,3 +57,12 @@ Cada `git push` na `main` publica uma versão nova sozinho. A região (São Paul
 - **Planos:** o plano gratuito da Vercel (Hobby) é só para uso não comercial. Com o cliente pagando, mude para o **Pro** (cerca de US$ 20 por mês).
   O Neon gratuito tem 0,5 GB e "dorme" sem uso, então o primeiro acesso depois de um tempo parado demora cerca de 1 segundo. Com movimento diário, vale o plano pago.
 - **Backup:** o Neon guarda o histórico para restauração por alguns dias (*Restore*). Para guardar por mais tempo, faça uma cópia periódica com `pg_dump`.
+
+## Demonstração no GitHub Pages
+
+O GitHub Pages está configurado como **Deploy from a branch → main / (root)**. A página `index.html` da raiz leva para
+`site-demo/`, a demonstração estática da vitrine (sem servidor: o pedido vai direto para o WhatsApp). As fotos e os ícones
+são lidos de `public/`, os mesmos do sistema completo. Cada `git push` na `main` atualiza o site em 1 a 2 minutos:
+<https://tanattos18.github.io/Sistema-SaaS-Cleudes/>
+
+Depois de mudar produtos de demonstração, rode `npm run pages:catalogo` para refazer `site-demo/catalogo.json` e `site-demo/creditos.html`.

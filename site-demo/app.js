@@ -90,7 +90,7 @@ let ativa = null;
 const situacao = situacaoLoja();
 
 const chave = (i) => `${i.produtoId}:${i.temVasilhame ?? ""}`;
-const fotoHtml = (p) => (p.foto ? `<img src="produtos/${p.foto}.webp" alt="" width="480" height="360" loading="lazy" decoding="async">` : `<span class="sem-foto">${icone.get(p.categoriaId)}</span>`);
+const fotoHtml = (p) => (p.foto ? `<img src="../public/produtos/${p.foto}.webp" alt="" width="480" height="360" loading="lazy" decoding="async">` : `<span class="sem-foto">${icone.get(p.categoriaId)}</span>`);
 
 /** Grava o carrinho e redesenha só os cartões dos produtos alterados (ou tudo, sem `ids`). */
 function salvarCarrinho(ids) {
