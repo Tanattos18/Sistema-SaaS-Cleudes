@@ -2,7 +2,7 @@ import { writeFileSync } from "node:fs";
 import { CATALOGO } from "./catalogo-demo";
 
 /**
- * Gera pages/catalogo.json para a demonstração estática (GitHub Pages).
+ * Gera site-demo/catalogo.json para a demonstração estática (GitHub Pages).
  * Uso: npm run pages:catalogo
  */
 let id = 0;
@@ -18,5 +18,5 @@ const produtos = CATALOGO.flatMap((c, i) =>
     precoVasilhame: extra?.vasilhame ?? null,
   })),
 );
-writeFileSync("pages/catalogo.json", JSON.stringify({ categorias, produtos }));
-console.log(`pages/catalogo.json: ${produtos.length} produtos em ${categorias.length} categorias.`);
+writeFileSync("site-demo/catalogo.json", JSON.stringify({ categorias, produtos }));
+console.log(`site-demo/catalogo.json: ${produtos.length} produtos em ${categorias.length} categorias.`);

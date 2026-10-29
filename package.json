@@ -14,7 +14,8 @@
     "db:seed": "tsx --env-file-if-exists=.env scripts/seed.ts",
     "db:senha": "tsx --env-file-if-exists=.env scripts/redefinir-senha.ts",
     "db:demo": "tsx --env-file-if-exists=.env scripts/demo.ts",
-    "pages:catalogo": "tsx scripts/gerar-pages.ts"
+    "pages:catalogo": "tsx scripts/gerar-pages.ts",
+    "db:producao": "tsx --env-file=.env.producao scripts/migrate.ts && tsx --env-file=.env.producao scripts/seed.ts && tsx --env-file=.env.producao scripts/demo.ts"
   },
   "dependencies": {
     "@electric-sql/pglite": "^0.5.11",

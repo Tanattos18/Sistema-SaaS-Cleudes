@@ -43,8 +43,8 @@ async function main() {
 
   const usuarios = await db.select({ id: schema.usuarios.id }).from(schema.usuarios).where(eq(schema.usuarios.lojaId, loja.id)).limit(1);
   if (usuarios.length === 0) {
-    const email = process.env.ADMIN_EMAIL ?? "admin@caixeta.local";
-    const senha = process.env.ADMIN_PASSWORD ?? randomBytes(9).toString("base64url");
+    const email = process.env.ADMIN_EMAIL || "admin@caixeta.local";
+    const senha = process.env.ADMIN_PASSWORD || randomBytes(9).toString("base64url");
     await db.insert(schema.usuarios).values({
       lojaId: loja.id,
       nome: "Administrador",

@@ -18,8 +18,8 @@ async function conectar(): Promise<DB> {
     const postgres = (await import("postgres")).default;
     const sql = postgres(url, {
       max: Number(process.env.DB_POOL_MAX) || 5,
-      // Poolers em modo transação (Supabase porta 6543, PgBouncer) não aceitam prepared statements.
-      prepare: !/:6543\b|pgbouncer=true/.test(url),
+      // Poolers em modo transação (Neon "-pooler", Supabase porta 6543, PgBouncer) não aceitam prepared statements.
+      prepare: !/-pooler\.|:6543\b|pgbouncer=true/.test(url),
     });
     globalThis.__pedidosFechar = () => sql.end();
     return drizzlePostgres(sql, { schema });

@@ -41,6 +41,8 @@ export async function bairrosAtivos(db: DB, lojaId: number) {
 
 /** Endereço público do site, para links no WhatsApp e retorno do Mercado Pago. */
 export function urlDoSite(): string {
-  return (process.env.SITE_URL ?? "http://localhost:3000").replace(/\/$/, "");
+  // Na Vercel, sem SITE_URL, usa o domínio de produção do projeto (ex.: pedidos.vercel.app).
+  const vercel = process.env.VERCEL_PROJECT_PRODUCTION_URL;
+  return (process.env.SITE_URL ?? (vercel ? `https://${vercel}` : "http://localhost:3000")).replace(/\/$/, "");
 }
 

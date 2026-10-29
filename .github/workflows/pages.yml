@@ -1,11 +1,11 @@
-# Publica a demonstração estática da vitrine (pasta pages/) no GitHub Pages.
+# Publica a demonstração estática da vitrine (pasta site-demo/) no GitHub Pages.
 # O sistema completo (Next.js + banco) não roda no Pages; precisa de um servidor.
 name: Demonstração no GitHub Pages
 
 on:
   push:
     branches: [main]
-    paths: ["pages/**", ".github/workflows/pages.yml"]
+    paths: ["site-demo/**", ".github/workflows/pages.yml"]
   workflow_dispatch:
 
 permissions:
@@ -28,6 +28,6 @@ jobs:
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:
-          path: pages
+          path: site-demo
       - id: deploy
         uses: actions/deploy-pages@v4
