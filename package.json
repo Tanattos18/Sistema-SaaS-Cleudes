@@ -14,7 +14,8 @@
     "db:seed": "tsx --env-file-if-exists=.env scripts/seed.ts",
     "db:senha": "tsx --env-file-if-exists=.env scripts/redefinir-senha.ts",
     "db:demo": "tsx --env-file-if-exists=.env scripts/demo.ts",
-    "pages:catalogo": "tsx scripts/gerar-pages.ts",
+    "pages:catalogo": "tsx scripts/gerar-pages.ts && tsx scripts/gerar-creditos-demo.ts",
+    "fotos:baixar": "tsx scripts/baixar-fotos.ts",
     "db:producao": "tsx --env-file=.env.producao scripts/migrate.ts && tsx --env-file=.env.producao scripts/seed.ts && tsx --env-file=.env.producao scripts/demo.ts"
   },
   "dependencies": {
@@ -37,6 +38,7 @@
     "drizzle-kit": "^0.31.11",
     "eslint": "^9",
     "eslint-config-next": "16.4.3",
+    "sharp": "^0.35.5",
     "tailwindcss": "^4",
     "tsx": "^4.23.15",
     "typescript": "^5",

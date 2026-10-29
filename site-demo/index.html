@@ -2,82 +2,113 @@
 <html lang="pt-BR">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>Supermercado Caixeta — Faça seu pedido</title>
   <meta name="description" content="Açougue, padaria, supermercado, gás e bebidas. Peça pelo celular e receba em casa.">
+  <meta name="theme-color" content="#ffd200">
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" href="icones/icone-192.png">
+  <link rel="apple-touch-icon" href="icones/apple-touch-icon.png">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="Caixeta">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;700;800&family=Nunito+Sans:wght@400;600;700;800&display=swap">
   <link rel="stylesheet" href="estilo.css">
 </head>
 <body>
-  <div class="aviso-demo">Versão de demonstração · produtos e preços fictícios</div>
-
   <div id="tela-catalogo">
+    <div class="faixa">
+      <p class="conteudo"><span class="ico-amarelo">🚚</span> Entregamos na sua casa <span class="so-sm">· Frete grátis acima de R$ 150,00</span> · Mínimo R$ 40,00</p>
+    </div>
     <header class="topo">
-      <div class="conteudo">
-        <h1>Supermercado Caixeta</h1>
-        <p>Açougue, padaria, supermercado, gás e bebidas. Entregamos na sua casa!</p>
-        <div class="selos">
-          <span id="situacao" class="selo"></span>
-          <span id="minimo"></span>
-          <span id="frete-gratis"></span>
-        </div>
-        <details class="horarios">
-          <summary>Horários</summary>
-          <ul id="lista-horarios"></ul>
-        </details>
-        <input id="busca" type="search" placeholder="Buscar produto…" autocomplete="off">
+      <div class="barra conteudo">
+        <a class="logo" href="./"><span class="selo-logo">C</span><span><small>Supermercado</small><strong>Caixeta</strong></span></a>
+        <label class="busca so-md"><span class="sr">Buscar produto</span><input class="campo-busca" type="search" placeholder="O que você procura hoje?" autocomplete="off"></label>
+        <span class="situacao so-sm" id="situacao"></span>
+        <button class="botao-carrinho" id="abrir-carrinho" type="button" aria-label="Carrinho">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 7h12l1 13H5L6 7Z"/><path d="M9 7a3 3 0 0 1 6 0"/></svg>
+          <span class="so-sm" id="total-topo">R$ 0,00</span>
+          <span class="contagem" id="contagem" hidden></span>
+        </button>
       </div>
-      <nav id="categorias" class="categorias"></nav>
+      <div class="conteudo busca-celular"><label class="busca"><span class="sr">Buscar produto</span><input class="campo-busca" type="search" placeholder="O que você procura hoje?" autocomplete="off"></label></div>
+      <nav class="chips" id="chips" aria-label="Categorias"></nav>
     </header>
-    <main id="produtos" class="conteudo produtos"></main>
-    <button id="barra-carrinho" class="barra-carrinho" hidden>
-      <strong>Ver carrinho</strong><span id="resumo-carrinho"></span>
+
+    <div class="layout conteudo">
+      <aside class="lateral"><nav class="menu-categorias" id="menu-categorias" aria-label="Categorias"></nav></aside>
+      <main id="principal"></main>
+      <aside class="lateral-carrinho"><div class="painel-fixo" id="painel-carrinho"></div></aside>
+    </div>
+
+    <footer class="rodape">
+      <div class="conteudo rodape-grade">
+        <div><p class="rodape-nome">Supermercado Caixeta</p><p>Açougue, padaria, supermercado, gás e bebidas, com entrega na sua casa.</p></div>
+        <div><p class="rodape-titulo">Horário</p><ul id="rodape-horarios"></ul></div>
+        <div><p class="rodape-titulo">Atendimento</p><a class="botao-whats" href="https://wa.me/5562981779460" target="_blank" rel="noopener">WhatsApp (62) 98177-9460</a></div>
+        <div><p class="rodape-titulo">Formas de pagamento</p><p>Pix, cartões de crédito e débito, vale-refeição e dinheiro na entrega.</p><a class="link-claro" href="creditos.html">Créditos das imagens</a></div>
+      </div>
+      <p class="rodape-fim">Versão de demonstração · produtos e preços fictícios</p>
+    </footer>
+
+    <button id="barra-carrinho" class="barra-carrinho" type="button" hidden>
+      <span><span class="qtd-barra" id="qtd-barra"></span> Ver carrinho</span><strong id="total-barra"></strong>
     </button>
   </div>
 
   <div id="tela-checkout" hidden>
-    <header class="topo">
-      <div class="conteudo linha">
-        <button type="button" class="link-voltar" id="voltar-checkout">← Voltar</button>
-        <h2>Entrega e pagamento</h2>
-      </div>
-    </header>
-    <form id="form-checkout" class="conteudo estreito" novalidate>
-      <section class="cartao">
-        <h3>Seus dados</h3>
-        <label>Nome *<input name="nome" autocomplete="name" required maxlength="80"></label>
-        <label>Telefone / WhatsApp *<input name="telefone" type="tel" inputmode="tel" autocomplete="tel" placeholder="(62) 90000-0000" required></label>
-      </section>
-      <section class="cartao">
-        <h3>Endereço de entrega</h3>
-        <div class="grade-endereco">
-          <label>Rua *<input name="rua" autocomplete="address-line1" required maxlength="120"></label>
-          <label>Número *<input name="numero" required maxlength="20" placeholder="ou S/N"></label>
+    <header class="topo"><div class="barra conteudo">
+      <button type="button" class="botao-voltar" id="voltar-checkout" aria-label="Voltar ao carrinho">‹</button>
+      <a class="logo compacto" href="./"><span class="selo-logo">C</span><span><small>Supermercado</small><strong>Caixeta</strong></span></a>
+    </div></header>
+    <div class="conteudo checkout">
+      <ol class="passos"><li class="feito"><span>✓</span> <em>Carrinho</em></li><li class="atual"><span>2</span> Entrega e pagamento</li><li><span>3</span> <em>Confirmação</em></li></ol>
+      <form id="form-checkout" class="checkout-grade" novalidate>
+        <div class="checkout-campos">
+          <section class="bloco"><h2><span>1</span> Seus dados</h2>
+            <div class="duas">
+              <label>Nome *<input name="nome" autocomplete="name" required maxlength="80"></label>
+              <label>Telefone / WhatsApp *<input name="telefone" type="tel" inputmode="tel" autocomplete="tel" placeholder="(62) 90000-0000" required></label>
+            </div>
+          </section>
+          <section class="bloco"><h2><span>2</span> Endereço de entrega</h2>
+            <div class="rua-numero">
+              <label>Rua *<input name="rua" autocomplete="address-line1" required maxlength="120"></label>
+              <label>Número *<input name="numero" required maxlength="20" placeholder="ou S/N"></label>
+            </div>
+            <div class="duas">
+              <label>Complemento<input name="complemento" maxlength="80" placeholder="Quadra, lote, apto…"></label>
+              <label>Bairro *<input name="bairro" required maxlength="80"></label>
+            </div>
+            <label>Ponto de referência<input name="referencia" maxlength="150"></label>
+          </section>
+          <section class="bloco"><h2><span>3</span> Pagamento</h2>
+            <p class="rotulo">Pagar na entrega</p>
+            <div id="formas-pagamento" class="opcoes-pagamento"></div>
+            <p class="nota">Pagamento pelo site (Pix e cartão via Mercado Pago) disponível na versão completa.</p>
+            <div id="bloco-troco" class="bloco-troco" hidden>
+              <label class="check"><input type="checkbox" id="precisa-troco"> Preciso de troco</label>
+              <label id="campo-troco" hidden>Troco para quanto?<input id="troco" inputmode="decimal" placeholder="ex.: 100,00"></label>
+            </div>
+            <label>Observações do pedido<textarea name="observacoes" rows="2" maxlength="500" placeholder="ex.: tocar a campainha, entregar no portão"></textarea></label>
+          </section>
         </div>
-        <label>Complemento<input name="complemento" maxlength="80" placeholder="Quadra, lote, apto…"></label>
-        <label>Bairro *<input name="bairro" required maxlength="80"></label>
-        <label>Ponto de referência<input name="referencia" maxlength="150"></label>
-      </section>
-      <section class="cartao">
-        <h3>Pagamento</h3>
-        <p class="rotulo">Pagar na entrega</p>
-        <div id="formas-pagamento" class="opcoes"></div>
-        <p class="nota">Pagamento pelo site (Pix e cartão via Mercado Pago) disponível na versão completa.</p>
-        <div id="bloco-troco" class="bloco-troco" hidden>
-          <label class="check"><input type="checkbox" id="precisa-troco"> Preciso de troco</label>
-          <label id="campo-troco" hidden>Troco para quanto?<input id="troco" inputmode="decimal" placeholder="ex.: 100,00"></label>
-        </div>
-      </section>
-      <section class="cartao">
-        <label>Observações do pedido<textarea name="observacoes" rows="2" maxlength="500" placeholder="ex.: tocar a campainha, entregar no portão"></textarea></label>
-      </section>
-      <section class="cartao" id="totais"></section>
-      <p id="erro-checkout" class="erro" role="alert" hidden></p>
-      <button type="submit" class="botao-principal">Enviar pedido pelo WhatsApp</button>
-    </form>
+        <aside class="resumo">
+          <h2>Resumo do pedido</h2>
+          <ul id="resumo-itens"></ul>
+          <div class="resumo-total">
+            <div id="totais"></div>
+            <p id="erro-checkout" class="erro" role="alert" hidden></p>
+            <button type="submit" class="botao-principal">Enviar pedido pelo WhatsApp</button>
+          </div>
+        </aside>
+      </form>
+    </div>
   </div>
 
-  <div id="modal" class="fundo" hidden></div>
-  <div id="carrinho" class="fundo" hidden></div>
+  <div id="modal" class="fundo fundo-modal" hidden></div>
+  <div id="gaveta" class="fundo fundo-gaveta" hidden><div class="gaveta" id="gaveta-conteudo" role="dialog" aria-modal="true" aria-label="Carrinho"></div></div>
 
   <script src="app.js"></script>
 </body>

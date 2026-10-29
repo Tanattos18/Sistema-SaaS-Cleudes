@@ -9,7 +9,13 @@ import { Vitrine, type DadosVitrine } from "./vitrine";
 export async function generateMetadata({ params }: PageProps<"/[loja]">) {
   const { loja: slug } = await params;
   const loja = await lojaPorSlug(await getDb(), slug);
-  return { title: loja ? `${loja.nome} — Faça seu pedido` : "Loja não encontrada" };
+  if (!loja) return { title: "Loja não encontrada" };
+  return {
+    title: `${loja.nome} — Faça seu pedido`,
+    description: loja.mensagemBoasVindas ?? `Peça pelo celular e receba em casa.`,
+    manifest: `/${loja.slug}/manifest.webmanifest`,
+    appleWebApp: { capable: true, title: loja.nome.split(" ").at(-1), statusBarStyle: "default" },
+  };
 }
 
 export default async function LojaPage({ params }: PageProps<"/[loja]">) {
@@ -46,7 +52,7 @@ export default async function LojaPage({ params }: PageProps<"/[loja]">) {
   ]);
 
   const dados: DadosVitrine = {
-    loja: { slug: loja.slug, nome: loja.nome, mensagem: loja.mensagemBoasVindas },
+    loja: { slug: loja.slug, nome: loja.nome, mensagem: loja.mensagemBoasVindas, endereco: loja.endereco, whatsapp: loja.whatsapp },
     regras: regrasDaLoja(loja),
     situacao: situacaoLoja(horarios),
     horarios,

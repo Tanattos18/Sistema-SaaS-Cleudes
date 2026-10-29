@@ -380,3 +380,23 @@ export const CATALOGO: { nome: string; icone: string; itens: Linha[] }[] = [
     ],
   },
 ];
+
+/** Ofertas de demonstração: nome do produto → preço "de" (riscado). */
+export const PROMOCOES: Record<string, number> = {
+  "Picanha": 89.9,
+  "Alcatra": 59.9,
+  "Frango inteiro": 14.9,
+  "Linguiça toscana": 24.9,
+  "Pão francês": 18.9,
+  "Banana prata": 7.99,
+  "Tomate": 9.99,
+  "Arroz tipo 1 5kg": 31.9,
+  "Feijão carioca 1kg": 9.49,
+  "Café torrado e moído 500g": 21.9,
+  "Óleo de soja 900ml": 8.49,
+  "Refrigerante de cola 2L": 11.99,
+  "Cerveja pilsen pack 12 latas 350ml": 45.9,
+  "Sabão em pó 1,6kg": 29.9,
+  "Papel higiênico folha dupla 12 rolos": 23.9,
+  "Gás de cozinha P13 (13 kg)": 130,
+};

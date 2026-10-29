@@ -1,4 +1,4 @@
-// Demonstração estática da vitrine (GitHub Pages): mesmas regras do sistema completo,
+// Demonstração estática da vitrine (GitHub Pages): mesmas regras e visual do sistema completo,
 // mas sem servidor. O pedido não é gravado; vai direto para o WhatsApp da loja.
 "use strict";
 
@@ -12,11 +12,17 @@ const LOJA = {
     { dia: 0, abre: "06:00", fecha: "11:00" },
     ...[1, 2, 3, 4, 5, 6].map((dia) => ({ dia, abre: "06:00", fecha: "20:00" })),
   ],
-  formas: ["Pix na entrega", "Crédito na entrega", "Débito na entrega", "Vale-refeição na entrega", "Dinheiro na entrega"],
+  formas: [
+    ["⚡", "Pix na entrega"],
+    ["💳", "Crédito na entrega"],
+    ["💳", "Débito na entrega"],
+    ["🍽️", "Vale-refeição na entrega"],
+    ["💵", "Dinheiro na entrega"],
+  ],
 };
 const VALOR_MIN_PESO = 5;
 const VALOR_MAX_PESO = 500;
-const DIAS = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
+const DIAS = ["Domingo", "Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado"];
 const DIAS_EXTENSO = ["domingo", "segunda", "terça", "quarta", "quinta", "sexta", "sábado"];
 
 const $ = (s) => document.querySelector(s);
@@ -27,6 +33,7 @@ const quilos = (q) => `${q.toLocaleString("pt-BR", { minimumFractionDigits: 3, m
 const numeroBR = (s) => Number(String(s).replace(/\./g, "").replace(",", "."));
 const semAcento = (s) => s.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
 const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
+const desconto = (p) => (p.precoDe ? Math.round((1 - p.preco / p.precoDe) * 100) : 0);
 
 function ler(chave, padrao) {
   try { return JSON.parse(localStorage.getItem(chave)) ?? padrao; } catch { return padrao; }
@@ -76,17 +83,24 @@ function calcularItem(item, p) {
 let catalogo = { categorias: [], produtos: [] };
 let porId = new Map();
 let icone = new Map();
+let porCategoria = new Map();
 let itens = ler("demo:carrinho", []);
 let busca = "";
+let ativa = null;
 const situacao = situacaoLoja();
 
 const chave = (i) => `${i.produtoId}:${i.temVasilhame ?? ""}`;
-function salvarCarrinho() {
+const fotoHtml = (p) => (p.foto ? `<img src="produtos/${p.foto}.webp" alt="" width="480" height="360" loading="lazy" decoding="async">` : `<span class="sem-foto">${icone.get(p.categoriaId)}</span>`);
+
+/** Grava o carrinho e redesenha só os cartões dos produtos alterados (ou tudo, sem `ids`). */
+function salvarCarrinho(ids) {
   itens = itens.filter((i) => porId.has(i.produtoId));
   gravar("demo:carrinho", itens);
-  renderProdutos();
-  renderBarra();
-  if (!$("#carrinho").hidden) abrirCarrinho();
+  if (!ids) renderPrincipal();
+  else for (const id of ids) {
+    document.querySelectorAll(`[data-produto="${id}"]`).forEach((el) => { el.outerHTML = cartao(porId.get(id), el.tagName.toLowerCase()); });
+  }
+  renderCarrinho();
 }
 function salvarItem(novo) {
   const k = chave(novo);
@@ -95,7 +109,7 @@ function salvarItem(novo) {
   if (!ok) itens = itens.filter((i) => chave(i) !== k);
   else if (idx === -1) itens.push(novo);
   else itens[idx] = novo;
-  salvarCarrinho();
+  salvarCarrinho([novo.produtoId]);
 }
 function subtotal() {
   return centavos(itens.reduce((s, i) => {
@@ -104,44 +118,88 @@ function subtotal() {
   }, 0));
 }
 const qtdItens = () => itens.reduce((s, i) => s + (i.valor != null ? 1 : i.quantidade || 0), 0);
+const qtdDe = (p) => itens.filter((i) => i.produtoId === p.id).reduce((s, i) => s + (i.quantidade || (i.valor ? 1 : 0)), 0);
 
 // ---------- vitrine ----------
-function cartao(p) {
-  const qtd = itens.filter((i) => i.produtoId === p.id).reduce((s, i) => s + (i.quantidade || (i.valor ? 1 : 0)), 0);
+function cartao(p, tag = "li") {
+  const qtd = qtdDe(p);
   const simples = p.unidade === "un" && p.precoVasilhame == null;
-  const acao = simples && qtd > 0
-    ? `<div class="contador"><button data-menos="${p.id}" aria-label="Tirar um">−</button><span>${qtd}</span><button data-mais="${p.id}" aria-label="Mais um">+</button></div>`
-    : `<button class="botao-add" data-add="${p.id}">${qtd > 0 ? `No carrinho (${qtd}) · alterar` : "Adicionar"}</button>`;
-  return `<li class="produto">
-    <div class="icone" aria-hidden="true">${icone.get(p.categoriaId)}</div>
-    <p class="nome">${esc(p.nome)}</p>
-    <div class="preco">
-      ${p.precoDe ? `<span class="preco-de">${moeda(p.precoDe)}</span>` : ""}
-      <span class="preco-atual${p.precoDe ? " promo" : ""}">${moeda(p.preco)}</span>${p.unidade === "kg" ? '<span class="unid"> /kg</span>' : ""}
-      ${p.precoVasilhame != null ? '<span class="sub">troca do vasilhame</span>' : ""}
+  const off = desconto(p);
+  const acao = !p.disponivel && p.disponivel !== undefined
+    ? '<p class="esgotado">Indisponível</p>'
+    : simples && qtd > 0
+      ? `<div class="contador"><button data-menos="${p.id}" aria-label="Tirar um ${esc(p.nome)}">−</button><span>${qtd}</span><button data-mais="${p.id}" aria-label="Mais um ${esc(p.nome)}">+</button></div>`
+      : `<button class="botao-add" data-add="${p.id}">${qtd > 0 ? "Alterar" : "+ Adicionar"}</button>`;
+  return `<${tag} class="produto" data-produto="${p.id}">
+    <div class="foto">${fotoHtml(p)}
+      ${off > 0 ? `<span class="etiqueta off">-${off}%</span>` : ""}
+      ${p.unidade === "kg" ? '<span class="etiqueta tipo">Peça pelo valor</span>' : ""}
+      ${p.precoVasilhame != null ? '<span class="etiqueta tipo">Troca ou com vasilhame</span>' : ""}
+      ${qtd > 0 ? `<span class="etiqueta qtd">${qtd}</span>` : ""}
     </div>
-    <div class="acao">${acao}</div>
-  </li>`;
+    <div class="info">
+      <p class="nome">${esc(p.nome)}</p>
+      <div class="preco">
+        ${p.precoDe ? `<span class="preco-de">${moeda(p.precoDe)}</span>` : ""}
+        <span class="preco-atual${p.precoDe ? " promo" : ""}">${moeda(p.preco)}</span>${p.unidade === "kg" ? '<span class="unid"> /kg</span>' : ""}
+      </div>
+      <div class="acao">${acao}</div>
+    </div>
+  </${tag}>`;
 }
 
-function renderProdutos() {
+function renderPrincipal() {
   const termo = semAcento(busca.trim());
-  $("#categorias").hidden = !!termo;
+  $("#chips").hidden = !!termo;
+  const fechado = situacao.aberta ? "" : `<div class="aviso-fechado"><strong>Estamos fechados agora</strong>${situacao.mensagem}. Você pode montar o carrinho, mas os pedidos só são aceitos no horário de funcionamento.</div>`;
   if (termo) {
     const lista = catalogo.produtos.filter((p) => semAcento(p.nome).includes(termo));
-    $("#produtos").innerHTML = `<p class="vazio">${lista.length} produto(s) para “${esc(busca)}”</p><ul class="grade">${lista.map(cartao).join("")}</ul>`;
+    $("#principal").innerHTML = `${fechado}<p class="resultado-busca"><strong>${lista.length}</strong> produto(s) para “${esc(busca)}”<button type="button" data-limpar>limpar busca</button></p>
+      ${lista.length ? `<ul class="grade">${lista.map((p) => cartao(p)).join("")}</ul>` : '<p class="vazio">Nenhum produto encontrado. Tente outra palavra.</p>'}`;
     return;
   }
-  $("#produtos").innerHTML = catalogo.categorias.map((c) => {
-    const lista = catalogo.produtos.filter((p) => p.categoriaId === c.id);
-    return `<section><h2 id="cat-${c.id}">${c.icone} ${esc(c.nome)}</h2><ul class="grade">${lista.map(cartao).join("")}</ul></section>`;
-  }).join("");
+  const rolagem = $(".carrossel")?.scrollLeft ?? 0;
+  const ofertas = catalogo.produtos.filter((p) => p.precoDe).sort((a, b) => desconto(b) - desconto(a));
+  $("#principal").innerHTML = `${fechado}
+    <section class="hero">
+      <div class="hero-texto">
+        <span class="selo-vermelho">Ofertas da semana</span>
+        <h2>Preço baixo de verdade, <em>entregue na sua porta</em></h2>
+        <p>Açougue, padaria, supermercado, gás e bebidas. Entregamos na sua casa!</p>
+      </div>
+      <ul class="carrossel">${ofertas.map((p) => `<li>${cartao(p, "div")}</li>`).join("")}</ul>
+    </section>
+    <ul class="beneficios">
+      <li><span class="ico">🚚</span><span><strong>Entrega rápida</strong><small>Grátis acima de ${moeda(LOJA.freteGratisAcima)}</small></span></li>
+      <li><span class="ico">💳</span><span><strong>Pague como quiser</strong><small>Pix, cartão, vale-refeição ou dinheiro</small></span></li>
+      <li><span class="ico">🕒</span><span><strong>${situacao.aberta ? "Aberto agora" : "Fechado agora"}</strong><small>${situacao.mensagem}</small></span></li>
+    </ul>
+    ${catalogo.categorias.map((c) => {
+      const lista = porCategoria.get(c.id) || [];
+      return `<section class="categoria" id="cat-${c.id}" data-categoria="${c.id}">
+        <h2><span class="ico">${c.icone}</span>${esc(c.nome)} <small>${lista.length}</small></h2>
+        <ul class="grade">${lista.map((p) => cartao(p)).join("")}</ul>
+      </section>`;
+    }).join("")}`;
+  const car = $(".carrossel");
+  if (car) car.scrollLeft = rolagem;
+  observarCategorias();
 }
 
-function renderBarra() {
-  const n = qtdItens();
-  $("#barra-carrinho").hidden = n === 0;
-  $("#resumo-carrinho").textContent = `${n} ${n === 1 ? "item" : "itens"} · ${moeda(subtotal())}`;
+let observador;
+function observarCategorias() {
+  observador?.disconnect();
+  observador = new IntersectionObserver((entradas) => {
+    const vis = entradas.filter((e) => e.isIntersecting).sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top)[0];
+    if (vis) marcarAtiva(Number(vis.target.dataset.categoria));
+  }, { rootMargin: "-140px 0px -60% 0px" });
+  document.querySelectorAll("[data-categoria]").forEach((el) => observador.observe(el));
+}
+function marcarAtiva(id) {
+  if (ativa === id) return;
+  ativa = id;
+  document.querySelectorAll("[data-ir]").forEach((a) => a.classList.toggle("ativa", Number(a.dataset.ir) === id));
+  document.querySelector(`#chips [data-ir="${id}"]`)?.scrollIntoView({ block: "nearest", inline: "center" });
 }
 
 function somar(id, delta) {
@@ -149,19 +207,101 @@ function somar(id, delta) {
   salvarItem({ produtoId: id, quantidade: Math.min(99, Math.max(0, (atual?.quantidade || 0) + delta)) });
 }
 
-$("#produtos").addEventListener("click", (e) => {
+$("#principal").addEventListener("click", (e) => {
   const b = e.target.closest("button");
   if (!b) return;
   if (b.dataset.mais) somar(Number(b.dataset.mais), 1);
   if (b.dataset.menos) somar(Number(b.dataset.menos), -1);
+  if (b.dataset.limpar !== undefined) definirBusca("");
   if (b.dataset.add) {
     const p = porId.get(Number(b.dataset.add));
     if (p.unidade === "kg" || p.precoVasilhame != null) abrirModal(p);
     else somar(p.id, 1);
   }
 });
-$("#busca").addEventListener("input", (e) => { busca = e.target.value; renderProdutos(); });
-$("#barra-carrinho").addEventListener("click", abrirCarrinho);
+function definirBusca(v) {
+  busca = v;
+  document.querySelectorAll(".campo-busca").forEach((i) => { if (i.value !== v) i.value = v; });
+  renderPrincipal();
+}
+document.querySelectorAll(".campo-busca").forEach((i) => i.addEventListener("input", (e) => definirBusca(e.target.value)));
+
+// ---------- carrinho (painel fixo no computador, gaveta no celular/tablet) ----------
+function htmlCarrinho() {
+  const sub = subtotal();
+  const falta = centavos(LOJA.pedidoMinimo - sub);
+  const faltaFrete = centavos(LOJA.freteGratisAcima - sub);
+  const lista = itens.length
+    ? `<ul class="itens">${itens.map((i) => {
+        const p = porId.get(i.produtoId);
+        const r = calcularItem(i, p);
+        const det = [
+          p.unidade === "kg" && typeof r !== "string" ? `${moeda(i.valor)} ≈ ${quilos(r.quantidade)}` : "",
+          i.temVasilhame === true ? "Troca (tem o vazio)" : i.temVasilhame === false ? "Com botijão" : "",
+        ].filter(Boolean).join(" · ");
+        return `<li>
+          <div class="miniatura">${fotoHtml(p)}</div>
+          <div class="item-corpo">
+            <div class="item-topo"><span>${esc(p.nome)}</span><strong>${typeof r === "string" ? "—" : moeda(r.total)}</strong></div>
+            ${det ? `<p class="item-detalhe">${det}</p>` : ""}
+            <div class="item-acoes">
+              ${p.unidade === "un" ? `<div class="mini"><button data-k="${chave(i)}" data-d="-1" aria-label="Menos">−</button><span>${i.quantidade}</span><button data-k="${chave(i)}" data-d="1" aria-label="Mais">+</button></div>` : ""}
+              ${p.unidade === "kg" || p.precoVasilhame != null ? `<button class="lnk" data-editar="${p.id}">Alterar</button>` : ""}
+              <button class="lixo" data-remover="${chave(i)}" aria-label="Remover ${esc(p.nome)}">🗑</button>
+            </div>
+          </div>
+        </li>`;
+      }).join("")}</ul>`
+    : '<div class="carrinho-vazio"><span class="bola">🛍️</span><strong>Seu carrinho está vazio</strong><span>Toque em “Adicionar” nos produtos para começar.</span></div>';
+  return `<div class="carrinho-topo"><h2>🛍️ Seu carrinho</h2><button class="fechar" data-fechar aria-label="Fechar carrinho">✕</button></div>
+    ${lista}
+    <div class="carrinho-rodape">
+      <div class="linha-total"><span>Subtotal</span><strong class="grande">${moeda(sub)}</strong></div>
+      ${itens.length && faltaFrete > 0 && falta <= 0 ? `<small>Faltam <strong>${moeda(faltaFrete)}</strong> para o frete grátis</small><div class="progresso"><div style="width:${Math.min(100, (sub / LOJA.freteGratisAcima) * 100)}%"></div></div>` : ""}
+      ${itens.length && faltaFrete <= 0 ? '<p class="ganhou">Você ganhou frete grátis!</p>' : ""}
+      ${itens.length && falta > 0 ? `<p class="alerta amarelo">Faltam <strong>${moeda(falta)}</strong> para o pedido mínimo de ${moeda(LOJA.pedidoMinimo)}.</p>` : ""}
+      ${!situacao.aberta ? `<p class="alerta vermelho">${situacao.mensagem}. Não estamos recebendo pedidos agora.</p>` : ""}
+      <button class="botao-principal" data-continuar ${falta > 0 || !situacao.aberta || !itens.length ? "disabled" : ""}>Finalizar pedido</button>
+    </div>`;
+}
+function renderCarrinho() {
+  const html = htmlCarrinho();
+  $("#painel-carrinho").innerHTML = html;
+  if (!$("#gaveta").hidden) $("#gaveta-conteudo").innerHTML = html;
+  const n = qtdItens();
+  const sub = moeda(subtotal());
+  $("#barra-carrinho").hidden = n === 0;
+  $("#qtd-barra").textContent = n;
+  $("#total-barra").textContent = sub;
+  $("#total-topo").textContent = sub;
+  $("#contagem").hidden = n === 0;
+  $("#contagem").textContent = n;
+}
+function abrirGaveta() {
+  $("#gaveta-conteudo").innerHTML = htmlCarrinho();
+  $("#gaveta").hidden = false;
+  document.body.style.overflow = "hidden";
+}
+function fecharGaveta() {
+  $("#gaveta").hidden = true;
+  document.body.style.overflow = "";
+}
+$("#abrir-carrinho").addEventListener("click", abrirGaveta);
+$("#barra-carrinho").addEventListener("click", abrirGaveta);
+function cliqueCarrinho(e) {
+  if (e.target === $("#gaveta") || e.target.closest("[data-fechar]")) return fecharGaveta();
+  const b = e.target.closest("button");
+  if (!b) return;
+  if (b.dataset.k) {
+    const i = itens.find((x) => chave(x) === b.dataset.k);
+    salvarItem({ ...i, quantidade: Math.min(99, i.quantidade + Number(b.dataset.d)) });
+  }
+  if (b.dataset.remover) { itens = itens.filter((x) => chave(x) !== b.dataset.remover); salvarCarrinho([Number(b.dataset.remover.split(":")[0])]); }
+  if (b.dataset.editar) abrirModal(porId.get(Number(b.dataset.editar)));
+  if (b.dataset.continuar !== undefined) { fecharGaveta(); abrirCheckout(); }
+}
+$("#gaveta").addEventListener("click", cliqueCarrinho);
+$("#painel-carrinho").addEventListener("click", cliqueCarrinho);
 
 // ---------- janela do produto (peso / gás) ----------
 function abrirModal(p) {
@@ -172,31 +312,44 @@ function abrirModal(p) {
   let temVasilhame = existente.temVasilhame;
   const m = $("#modal");
 
+  function rodape() {
+    const v = numeroBR(valor);
+    const total = p.unidade === "kg"
+      ? (v >= VALOR_MIN_PESO && v <= VALOR_MAX_PESO ? moeda(v) : "")
+      : gas && temVasilhame === undefined ? "" : moeda((p.preco + (gas && temVasilhame === false ? p.precoVasilhame : 0)) * quantidade);
+    return `<span>${existente.produtoId ? "Atualizar carrinho" : "Adicionar ao carrinho"}</span><strong>${total}</strong>`;
+  }
+  function textoPeso() {
+    const v = numeroBR(valor);
+    return `${v >= VALOR_MIN_PESO && v <= VALOR_MAX_PESO ? `Aproximadamente <strong>${quilos(Math.round((v / p.preco) * 1000) / 1000)}</strong>. ` : ""}Pesado na hora: a quantidade fica próxima do valor escolhido.`;
+  }
   function desenhar() {
     const v = numeroBR(valor);
     const corpo = p.unidade === "kg"
-      ? `<p class="rotulo">Quanto você quer levar (em reais)?</p>
-         <div class="chips">${[10, 20, 30, 50].map((x) => `<button type="button" data-valor="${x}" class="${v === x ? "ativo" : ""}">${moeda(x)}</button>`).join("")}</div>
-         <label><input id="m-valor" inputmode="decimal" placeholder="Outro valor, ex.: 25,00" value="${esc(valor)}"></label>
-         <p id="m-kg" class="rotulo">${v >= VALOR_MIN_PESO && v <= VALOR_MAX_PESO ? `≈ ${quilos(Math.round((v / p.preco) * 1000) / 1000)}` : "&nbsp;"}</p>
-         <p class="aviso">Produto pesado na hora: a quantidade é aproximada ao valor escolhido.</p>`
-      : `${gas ? `<p class="rotulo">Você tem o botijão vazio para troca?</p>
-           <label class="opcao ${temVasilhame === true ? "ativo" : ""}"><span><input type="radio" name="vas" data-vas="1" ${temVasilhame === true ? "checked" : ""}> Sim, tenho o vazio (só troca)</span><strong>${moeda(p.preco)}</strong></label>
-           <label class="opcao ${temVasilhame === false ? "ativo" : ""}"><span><input type="radio" name="vas" data-vas="0" ${temVasilhame === false ? "checked" : ""}> Não, quero com o botijão</span><strong>${moeda(p.preco + p.precoVasilhame)}</strong></label>` : ""}
-         <div class="qtd"><span class="rotulo">Quantidade</span><div><button type="button" data-q="-1">−</button><span class="n">${quantidade}</span><button type="button" data-q="1">+</button></div></div>`;
+      ? `<span class="rotulo">Quanto você quer levar, em reais?</span>
+         <div class="valores">${[10, 20, 30, 50].map((x) => `<button type="button" data-valor="${x}" class="${v === x ? "ativo" : ""}">R$ ${x}</button>`).join("")}</div>
+         <input id="m-valor" class="campo" inputmode="decimal" placeholder="Outro valor, ex.: 25,00" value="${esc(valor)}">
+         <p class="aviso-peso" id="m-kg">${textoPeso()}</p>`
+      : `${gas ? `<span class="rotulo">Você tem o botijão vazio para troca?</span>
+           <label class="opcao-gas ${temVasilhame === true ? "ativo" : ""}"><span><input type="radio" name="vas" data-vas="1" ${temVasilhame === true ? "checked" : ""}> <span><b>Sim, tenho o vazio</b><small>Só a troca do gás</small></span></span><strong>${moeda(p.preco)}</strong></label>
+           <label class="opcao-gas ${temVasilhame === false ? "ativo" : ""}"><span><input type="radio" name="vas" data-vas="0" ${temVasilhame === false ? "checked" : ""}> <span><b>Não, quero com o botijão</b><small>Gás + vasilhame novo</small></span></span><strong>${moeda(p.preco + p.precoVasilhame)}</strong></label>` : ""}
+         <div class="linha-qtd"><span>Quantidade</span><div class="passo-qtd"><button type="button" data-q="-1" aria-label="Menos">−</button><span>${quantidade}</span><button type="button" data-q="1" aria-label="Mais">+</button></div></div>`;
     m.innerHTML = `<div class="janela" role="dialog" aria-modal="true" aria-label="${esc(p.nome)}">
-      <h3>${esc(p.nome)}</h3>
-      <p class="preco-ref">${moeda(p.preco)}${p.unidade === "kg" ? " o quilo" : gas ? " (troca)" : ""}</p>
-      ${corpo}
-      <p id="m-erro" class="erro" hidden></p>
-      <div class="botoes"><button type="button" class="sec" data-fechar>Cancelar</button><button type="button" class="pri" data-ok>${existente.produtoId ? "Atualizar" : "Adicionar"}</button></div>
+      <div class="janela-foto">${fotoHtml(p)}<button type="button" class="fechar" data-fechar aria-label="Fechar">✕</button></div>
+      <div class="janela-corpo">
+        <h3>${esc(p.nome)}</h3>
+        <p class="preco-ref"><strong>${moeda(p.preco)}</strong>${p.unidade === "kg" ? " o quilo" : gas ? " a troca" : " cada"}</p>
+        ${corpo}
+        <p id="m-erro" class="erro" hidden></p>
+        <button type="button" class="botao-confirmar" data-ok>${rodape()}</button>
+      </div>
     </div>`;
     const inp = m.querySelector("#m-valor");
     if (inp) inp.addEventListener("input", (e) => {
       valor = e.target.value;
-      const n = numeroBR(valor);
-      m.querySelector("#m-kg").innerHTML = n >= VALOR_MIN_PESO && n <= VALOR_MAX_PESO ? `≈ ${quilos(Math.round((n / p.preco) * 1000) / 1000)}` : "&nbsp;";
-      m.querySelectorAll("[data-valor]").forEach((b) => b.classList.toggle("ativo", Number(b.dataset.valor) === n));
+      m.querySelector("#m-kg").innerHTML = textoPeso();
+      m.querySelector("[data-ok]").innerHTML = rodape();
+      m.querySelectorAll("[data-valor]").forEach((b) => b.classList.toggle("ativo", Number(b.dataset.valor) === numeroBR(valor)));
     });
   }
 
@@ -217,55 +370,13 @@ function abrirModal(p) {
   };
   desenhar();
   m.hidden = false;
+  document.body.style.overflow = "hidden";
 }
-function fecharModal() { $("#modal").hidden = true; $("#modal").innerHTML = ""; }
-
-// ---------- carrinho ----------
-function abrirCarrinho() {
-  const c = $("#carrinho");
-  const sub = subtotal();
-  const falta = centavos(LOJA.pedidoMinimo - sub);
-  c.innerHTML = `<aside class="gaveta" aria-label="Carrinho">
-    <header><h2>Seu carrinho</h2><button data-fechar>Fechar ✕</button></header>
-    <ul>${itens.map((i) => {
-      const p = porId.get(i.produtoId);
-      const r = calcularItem(i, p);
-      const det = [
-        p.unidade === "kg" && typeof r !== "string" ? `${moeda(i.valor)} ≈ ${quilos(r.quantidade)}` : "",
-        i.temVasilhame === true ? "Troca (tem o vazio)" : i.temVasilhame === false ? "Com botijão" : "",
-      ].filter(Boolean).join(" · ");
-      return `<li>
-        <div class="item-topo"><span>${esc(p.nome)}</span><strong>${typeof r === "string" ? "—" : moeda(r.total)}</strong></div>
-        ${det ? `<p class="item-detalhe">${det}</p>` : ""}
-        <div class="item-acoes">
-          ${p.unidade === "un" ? `<div class="mini"><button data-k="${chave(i)}" data-d="-1">−</button><span>${i.quantidade}</span><button data-k="${chave(i)}" data-d="1">+</button></div>` : ""}
-          ${p.unidade === "kg" || p.precoVasilhame != null ? `<button class="lnk" data-editar="${p.id}">Alterar</button>` : ""}
-          <button class="lnk rem" data-remover="${chave(i)}">Remover</button>
-        </div>
-      </li>`;
-    }).join("")}</ul>
-    <footer>
-      <div class="linha-total"><span>Subtotal</span><strong>${moeda(sub)}</strong></div>
-      ${falta > 0 ? `<p class="alerta amarelo">Faltam ${moeda(falta)} para o pedido mínimo de ${moeda(LOJA.pedidoMinimo)}.</p>` : ""}
-      ${!situacao.aberta ? `<p class="alerta vermelho">${situacao.mensagem}. Não estamos recebendo pedidos agora.</p>` : ""}
-      <button class="botao-principal" data-continuar ${falta > 0 || !situacao.aberta || !itens.length ? "disabled" : ""}>Continuar para entrega e pagamento</button>
-    </footer>
-  </aside>`;
-  c.hidden = false;
+function fecharModal() {
+  $("#modal").hidden = true;
+  $("#modal").innerHTML = "";
+  if ($("#gaveta").hidden) document.body.style.overflow = "";
 }
-$("#carrinho").addEventListener("click", (e) => {
-  const c = $("#carrinho");
-  if (e.target === c || e.target.closest("[data-fechar]")) { c.hidden = true; return; }
-  const b = e.target.closest("button");
-  if (!b) return;
-  if (b.dataset.k) {
-    const i = itens.find((x) => chave(x) === b.dataset.k);
-    salvarItem({ ...i, quantidade: Math.min(99, i.quantidade + Number(b.dataset.d)) });
-  }
-  if (b.dataset.remover) { itens = itens.filter((x) => chave(x) !== b.dataset.remover); salvarCarrinho(); }
-  if (b.dataset.editar) abrirModal(porId.get(Number(b.dataset.editar)));
-  if (b.dataset.continuar !== undefined) { c.hidden = true; abrirCheckout(); }
-});
 
 // ---------- checkout ----------
 const form = $("#form-checkout");
@@ -280,12 +391,18 @@ function totais() {
 function abrirCheckout() {
   const dados = ler("demo:cliente", {});
   for (const [k, v] of Object.entries(dados)) if (form.elements[k]) form.elements[k].value = v;
-  $("#formas-pagamento").innerHTML = LOJA.formas.map((f, i) => `<label class="opcao ${forma === f ? "ativo" : ""}"><span><input type="radio" name="forma" value="${i}" ${forma === f ? "checked" : ""}> ${f}</span></label>`).join("");
+  $("#formas-pagamento").innerHTML = LOJA.formas.map(([ic, f], i) => `<label class="opcao ${forma === f ? "ativo" : ""}"><input type="radio" name="forma" value="${i}" ${forma === f ? "checked" : ""}><span aria-hidden="true">${ic}</span> ${f}</label>`).join("");
+  $("#resumo-itens").innerHTML = itens.map((i) => {
+    const p = porId.get(i.produtoId);
+    const r = calcularItem(i, p);
+    const det = (p.unidade === "kg" ? `≈ ${quilos(r.quantidade)}` : `${i.quantidade}×`) + (i.temVasilhame === true ? " · troca" : i.temVasilhame === false ? " · com botijão" : "");
+    return `<li><div class="miniatura">${fotoHtml(p)}</div><div><p>${esc(p.nome)}</p><small>${det}</small></div><strong>${moeda(r.total)}</strong></li>`;
+  }).join("");
   const t = totais();
   $("#totais").innerHTML = `
     <div class="linha-total"><span>Subtotal</span><span>${moeda(t.sub)}</span></div>
-    <div class="linha-total"><span>Entrega</span><span>${t.taxa === 0 ? "grátis" : moeda(t.taxa)}</span></div>
-    <div class="linha-total grande"><span>Total</span><span>${moeda(t.total)}</span></div>
+    <div class="linha-total"><span>Entrega</span><span class="${t.taxa === 0 ? "gratis" : ""}">${t.taxa === 0 ? "grátis" : moeda(t.taxa)}</span></div>
+    <div class="linha-total"><strong>Total</strong><strong class="grande">${moeda(t.total)}</strong></div>
     ${itens.some((i) => i.valor != null) ? '<p class="nota">Itens pesados na hora: quantidade aproximada ao valor escolhido.</p>' : ""}`;
   $("#erro-checkout").hidden = true;
   $("#tela-catalogo").hidden = true;
@@ -296,10 +413,11 @@ function abrirCheckout() {
 $("#voltar-checkout").addEventListener("click", () => {
   $("#tela-checkout").hidden = true;
   $("#tela-catalogo").hidden = false;
-  abrirCarrinho();
+  renderPrincipal();
+  if (innerWidth < 1280) abrirGaveta();
 });
 $("#formas-pagamento").addEventListener("change", (e) => {
-  forma = LOJA.formas[Number(e.target.value)];
+  forma = LOJA.formas[Number(e.target.value)][1];
   document.querySelectorAll("#formas-pagamento .opcao").forEach((l) => l.classList.toggle("ativo", l.querySelector("input").checked));
   $("#bloco-troco").hidden = forma !== "Dinheiro na entrega";
 });
@@ -361,16 +479,16 @@ form.addEventListener("submit", (e) => {
 // ---------- início ----------
 function iniciar() {
   const s = $("#situacao");
-  s.textContent = situacao.mensagem;
+  s.textContent = `🕒 ${situacao.mensagem}`;
   s.classList.add(situacao.aberta ? "aberta" : "fechada");
-  $("#minimo").textContent = `Pedido mínimo ${moeda(LOJA.pedidoMinimo)}`;
-  $("#frete-gratis").textContent = `Frete grátis acima de ${moeda(LOJA.freteGratisAcima)}`;
-  $("#lista-horarios").innerHTML = DIAS.map((d, i) => {
+  $("#rodape-horarios").innerHTML = DIAS.map((d, i) => {
     const h = LOJA.horarios.filter((x) => x.dia === i);
-    return `<li>${d}: ${h.length ? h.map((x) => `${x.abre}–${x.fecha}`).join(", ") : "fechado"}</li>`;
+    return `<li><span>${d}</span><span>${h.length ? h.map((x) => `${x.abre}–${x.fecha}`).join(", ") : "fechado"}</span></li>`;
   }).join("");
-  $("#categorias").innerHTML = catalogo.categorias.map((c) => `<a href="#cat-${c.id}">${c.icone} ${esc(c.nome)}</a>`).join("");
-  renderProdutos();
+  const link = (c) => `<a href="#cat-${c.id}" data-ir="${c.id}">${c.icone} ${esc(c.nome)}</a>`;
+  $("#chips").innerHTML = catalogo.categorias.map(link).join("");
+  $("#menu-categorias").innerHTML = "<p>Categorias</p>" + catalogo.categorias.map((c) => `<a href="#cat-${c.id}" data-ir="${c.id}"><span>${c.icone} ${esc(c.nome)}</span><small>${(porCategoria.get(c.id) || []).length}</small></a>`).join("");
+  $("#menu-categorias").addEventListener("click", (e) => { if (e.target.closest("a") && busca) definirBusca(""); });
   salvarCarrinho();
 }
 
@@ -380,6 +498,10 @@ fetch("catalogo.json")
     catalogo = dados;
     porId = new Map(dados.produtos.map((p) => [p.id, p]));
     icone = new Map(dados.categorias.map((c) => [c.id, c.icone]));
+    for (const p of dados.produtos) porCategoria.set(p.categoriaId, [...(porCategoria.get(p.categoriaId) || []), p]);
     iniciar();
   })
-  .catch(() => { $("#produtos").innerHTML = '<p class="vazio">Não foi possível carregar os produtos. Recarregue a página.</p>'; });
+  .catch(() => { $("#principal").innerHTML = '<p class="vazio">Não foi possível carregar os produtos. Recarregue a página.</p>'; });
+
+// Aplicativo instalável e funcionando com internet fraca.
+if ("serviceWorker" in navigator && location.protocol === "https:") navigator.serviceWorker.register("sw.js").catch(() => {});

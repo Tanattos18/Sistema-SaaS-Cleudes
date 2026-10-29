@@ -5,7 +5,7 @@ name: Demonstração no GitHub Pages
 on:
   push:
     branches: [main]
-    paths: ["site-demo/**", ".github/workflows/pages.yml"]
+    paths: ["site-demo/**", "public/produtos/**", "public/icones/**", ".github/workflows/pages.yml"]
   workflow_dispatch:
 
 permissions:
@@ -26,6 +26,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: actions/configure-pages@v5
+      # As fotos e ícones ficam só em public/ (usados também pelo sistema completo).
+      - run: cp -r public/produtos site-demo/produtos && cp -r public/icones site-demo/icones && rm -f site-demo/produtos/creditos.json
       - uses: actions/upload-pages-artifact@v3
         with:
           path: site-demo

@@ -1,8 +1,19 @@
 @import "tailwindcss";
 
 @theme inline {
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --font-sans: var(--font-texto);
+  --font-titulos: var(--font-titulos);
+}
+
+/* Cores da fachada da Caixeta: amarelo do letreiro, azul das letras e vermelho do telefone. */
+@theme {
+  --color-marca-amarelo: #ffd200;
+  --color-marca-amarelo-claro: #fff6c2;
+  --color-marca-amarelo-escuro: #f2b705;
+  --color-marca-azul: #1d3f94;
+  --color-marca-azul-escuro: #0f2557;
+  --color-marca-azul-claro: #e8eefb;
+  --color-marca-vermelho: #e3141b;
 }
 
 /* Tailwind 4 usa a cor do texto como cor padrão de borda; aqui volta ao cinza claro. */
@@ -19,13 +30,13 @@ body {
 
 @layer components {
   .campo {
-    @apply w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-base shadow-sm sm:text-sm outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-600/20 disabled:bg-gray-100;
+    @apply w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-base shadow-sm sm:text-sm outline-none focus:border-marca-azul focus:ring-2 focus:ring-marca-azul/20 disabled:bg-gray-100;
   }
   .rotulo {
     @apply mb-1 block text-xs font-medium text-gray-600;
   }
   .botao {
-    @apply inline-flex items-center justify-center gap-2 rounded-md bg-blue-700 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-blue-800 disabled:opacity-60;
+    @apply inline-flex items-center justify-center gap-2 rounded-md bg-marca-azul px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-marca-azul-escuro disabled:opacity-60;
   }
   .botao-sec {
     @apply inline-flex items-center justify-center gap-2 rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50;
@@ -46,6 +57,6 @@ body {
     @apply border-b border-gray-100 px-3 py-2;
   }
   .link {
-    @apply font-medium text-blue-700 hover:underline;
+    @apply font-medium text-marca-azul hover:underline;
   }
 }

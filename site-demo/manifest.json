@@ -1,0 +1,18 @@
+{
+  "id": "./",
+  "name": "Supermercado Caixeta",
+  "short_name": "Caixeta",
+  "description": "Açougue, padaria, supermercado, gás e bebidas. Peça pelo celular e receba em casa.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#f4f5f9",
+  "theme_color": "#ffd200",
+  "lang": "pt-BR",
+  "icons": [
+    { "src": "icones/icone-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "icones/icone-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "icones/icone-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

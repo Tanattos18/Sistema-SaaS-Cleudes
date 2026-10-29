@@ -1,5 +1,6 @@
 import { writeFileSync } from "node:fs";
-import { CATALOGO } from "./catalogo-demo";
+import { CATALOGO, PROMOCOES } from "./catalogo-demo";
+import { fotoDoProduto } from "./fotos-demo";
 
 /**
  * Gera site-demo/catalogo.json para a demonstração estática (GitHub Pages).
@@ -14,7 +15,8 @@ const produtos = CATALOGO.flatMap((c, i) =>
     nome,
     unidade: extra?.kg ? "kg" : "un",
     preco: Math.round(preco * 100) / 100,
-    precoDe: extra?.de ?? null,
+    precoDe: extra?.de ?? PROMOCOES[nome] ?? null,
+    foto: fotoDoProduto(nome),
     precoVasilhame: extra?.vasilhame ?? null,
   })),
 );

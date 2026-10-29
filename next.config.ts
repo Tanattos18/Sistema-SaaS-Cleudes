@@ -8,7 +8,7 @@ const csp = [
   "default-src 'self'",
   `script-src 'self' 'unsafe-inline'${dev ? " 'unsafe-eval'" : ""}`,
   "style-src 'self' 'unsafe-inline'",
-  "img-src 'self' data: blob:",
+  "img-src 'self' data: blob: https:",
   "font-src 'self' data:",
   `connect-src 'self'${dev ? " ws: wss:" : ""}`,
   "object-src 'none'",
@@ -28,12 +28,18 @@ const cabecalhosSeguranca = [
 ];
 
 const nextConfig: NextConfig = {
-  // Sistema interno com dados por usuário: todas as páginas são dinâmicas,
+  // Páginas dinâmicas (dados do banco a cada acesso),
   // então usamos o modelo de cache tradicional (sem Cache Components).
-  serverExternalPackages: ["@electric-sql/pglite", "exceljs", "jspdf", "jspdf-autotable"],
+  serverExternalPackages: ["@electric-sql/pglite", "exceljs"],
   poweredByHeader: false,
   async headers() {
-    return [{ source: "/:path*", headers: cabecalhosSeguranca }];
+    return [
+      { source: "/:path*", headers: cabecalhosSeguranca },
+      // O navegador precisa sempre da versão nova do service worker.
+      { source: "/sw.js", headers: [{ key: "Cache-Control", value: "no-cache, no-store, must-revalidate" }] },
+      // Fotos dos produtos mudam pouco: cache longo no navegador e na CDN.
+      { source: "/produtos/:arquivo*", headers: [{ key: "Cache-Control", value: "public, max-age=604800, stale-while-revalidate=86400" }] },
+    ];
   },
   turbopack: {
     rules: {

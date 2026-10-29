@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sem conexão</title>
+<style>
+  body { margin: 0; min-height: 100vh; display: grid; place-items: center; background: #ffd200; color: #0f2557; font-family: system-ui, sans-serif; text-align: center; padding: 24px; box-sizing: border-box; }
+  .cartao { background: #fff; border-radius: 24px; padding: 32px 24px; max-width: 360px; box-shadow: 0 10px 30px rgb(0 0 0 / .15); }
+  h1 { margin: 12px 0 4px; font-size: 24px; }
+  p { margin: 0 0 20px; color: #374151; }
+  button { border: 0; border-radius: 16px; background: #1d3f94; color: #fff; font: inherit; font-weight: 700; padding: 14px 24px; width: 100%; cursor: pointer; }
+</style>
+</head>
+<body>
+  <div class="cartao">
+    <img src="/icones/icone-192.png" alt="" width="72" height="72">
+    <h1>Sem internet no momento</h1>
+    <p>Seu carrinho continua salvo neste aparelho. Assim que a conexão voltar, é só tentar de novo.</p>
+    <button onclick="location.reload()">Tentar de novo</button>
+  </div>
+</body>
+</html>

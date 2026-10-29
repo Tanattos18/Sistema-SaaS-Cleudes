@@ -45,3 +45,7 @@ next-env.d.ts
 
 # exemplo de variáveis pode ser versionado
 !.env.example
+
+/* Fotos da demonstração: copiadas de public/ na publicação (ver .github/workflows/pages.yml) */
+/site-demo/produtos
+/site-demo/icones
