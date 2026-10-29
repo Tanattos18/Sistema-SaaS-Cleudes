@@ -1,0 +1,33 @@
+PROGRAMA DE IMPRESSAO DO BALCAO
+================================
+
+O que faz: a cada 5 segundos busca os pedidos novos no sistema e imprime o
+comprovante na termica (Epson TM-T88V). Pedidos pagos pelo site so imprimem
+depois que o pagamento e confirmado.
+
+INSTALACAO (uma vez)
+1. Instale o Node.js (versao LTS): https://nodejs.org/pt
+2. Instale a impressora Epson no Windows com o driver dela (Epson Advanced
+   Printer Driver / TM-T88V). Anote o nome que aparece em
+   Configuracoes > Bluetooth e dispositivos > Impressoras.
+3. Crie a pasta C:\Impressora e coloque nela: agente.js, imprimir-windows.ps1,
+   iniciar.bat, LEIA-ME.txt e o config.json baixado no painel
+   (Configuracoes > Impressora do balcao).
+4. Abra o config.json no Bloco de Notas:
+   - Impressora no USB: "tipo": "windows" e "nome": o nome exato do passo 2.
+   - Impressora no cabo de rede: "tipo": "rede", "ip": o IP da impressora
+     (aparece na folha de status: segure o botao FEED ao ligar) e "porta": 9100.
+   - "copias": quantas vias por pedido (ex.: 2 = uma para separar, uma para o entregador).
+5. Teste: abra o Prompt de Comando na pasta e rode:  iniciar.bat teste
+6. Dois cliques em iniciar.bat. Deixe a janela aberta (pode minimizar).
+
+INICIAR SOZINHO COM O WINDOWS
+- Aperte Windows+R, digite  shell:startup  e de Enter.
+- Clique com o botao direito em iniciar.bat > Copiar, e na pasta que abriu:
+  botao direito > Colar atalho.
+
+PROBLEMAS
+- O painel mostra "Impressora conectada" quando este programa esta rodando.
+- Erros ficam em agente.log, nesta pasta.
+- "Chave de impressao recusada": baixe o config.json de novo no painel.
+- Para reimprimir um pedido: no painel, abra o pedido > Reimprimir na impressora.

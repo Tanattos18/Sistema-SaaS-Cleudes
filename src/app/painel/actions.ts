@@ -28,3 +28,17 @@ export async function mudarStatus(formData: FormData) {
   await auditar(db, usuario.lojaId, usuario.uid, "status", "pedido", id, { de: p.status, para, motivo });
   revalidatePath("/painel");
 }
+
+/** Volta o pedido para a fila: o programa do balcão imprime de novo em poucos segundos. */
+export async function reimprimir(formData: FormData) {
+  const usuario = await exigirUsuario();
+  const id = Number(formData.get("id"));
+  const db = await getDb();
+  await db
+    .update(schema.pedidos)
+    .set({ impressoEm: null })
+    .where(and(eq(schema.pedidos.id, id), eq(schema.pedidos.lojaId, usuario.lojaId)));
+  await auditar(db, usuario.lojaId, usuario.uid, "reimprimir", "pedido", id);
+  revalidatePath(`/painel/pedidos/${id}`);
+  revalidatePath("/painel");
+}

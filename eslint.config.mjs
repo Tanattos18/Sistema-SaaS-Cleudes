@@ -12,6 +12,8 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Arquivos servidos como estão (programa de impressão do balcão, service worker).
+    "public/**",
   ]),
 ]);
 

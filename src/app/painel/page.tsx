@@ -1,8 +1,10 @@
 import Link from "next/link";
-import { getDb } from "@/db";
+import { eq } from "drizzle-orm";
+import { getDb, schema } from "@/db";
 import { STATUS_PEDIDO, type StatusPedido } from "@/db/schema";
 import { exigirUsuario } from "@/lib/auth";
 import { pedidosDoPainel, resumoDoDia } from "@/lib/consultas";
+import { impressoraConectada } from "@/lib/impressao";
 import { ROTULO_PAGAMENTO, ROTULO_STATUS, telefoneBR } from "@/lib/dominio";
 import { moeda } from "@/lib/formato";
 import { Cabecalho, Indicador, Selo, Vazio } from "@/components/ui";
@@ -15,14 +17,28 @@ export default async function PainelPage({ searchParams }: PageProps<"/painel">)
   const sp = await searchParams;
   const filtro = typeof sp.status === "string" && (STATUS_PEDIDO as readonly string[]).includes(sp.status) ? (sp.status as StatusPedido) : null;
   const db = await getDb();
-  const [pedidos, resumo] = await Promise.all([pedidosDoPainel(db, usuario.lojaId, filtro), resumoDoDia(db, usuario.lojaId)]);
+  const [pedidos, resumo, [loja]] = await Promise.all([
+    pedidosDoPainel(db, usuario.lojaId, filtro),
+    resumoDoDia(db, usuario.lojaId),
+    db.select({ vista: schema.lojas.impressoraVistaEm }).from(schema.lojas).where(eq(schema.lojas.id, usuario.lojaId)),
+  ]);
+  const conectada = impressoraConectada(loja.vista);
 
   const hora = new Intl.DateTimeFormat("pt-BR", { timeZone: "America/Sao_Paulo", day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" });
 
   return (
     <div>
       <AutoAtualizar segundos={20} />
-      <Cabecalho titulo="Pedidos" descricao={filtro ? `${ROTULO_STATUS[filtro]} (últimos 7 dias)` : "Em andamento. A lista atualiza sozinha."} />
+      <Cabecalho
+        titulo="Pedidos"
+        descricao={filtro ? `${ROTULO_STATUS[filtro]} (últimos 7 dias)` : "Em andamento. A lista atualiza sozinha."}
+        acoes={
+          <span className={`inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-semibold ${conectada ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"}`} title="Programa de impressão do PC do balcão">
+            <span className={`size-2 rounded-full ${conectada ? "bg-green-600" : "bg-red-600"}`} />
+            {conectada ? "Impressora conectada" : loja.vista ? "Impressora sem contato" : "Impressora não instalada"}
+          </span>
+        }
+      />
       <div className="mb-6 grid grid-cols-2 gap-3 lg:grid-cols-4">
         <Indicador rotulo="Pedidos hoje" valor={String(resumo.pedidosHoje)} />
         <Indicador rotulo="Vendido hoje" valor={moeda(resumo.faturamentoHoje)} detalhe={resumo.pedidosHoje ? `Ticket médio ${moeda(resumo.faturamentoHoje / resumo.pedidosHoje)}` : undefined} />
@@ -46,7 +62,7 @@ export default async function PainelPage({ searchParams }: PageProps<"/painel">)
             <tbody>
               {pedidos.map((p) => (
                 <tr key={p.id} className="hover:bg-gray-50">
-                  <td><Link href={`/painel/pedidos/${p.id}`} className="link">#{p.numero}</Link></td>
+                  <td className="whitespace-nowrap"><Link href={`/painel/pedidos/${p.id}`} className="link">#{p.numero}</Link>{p.impressoEm && <span className="ml-1" title="Impresso">🖨️</span>}</td>
                   <td className="whitespace-nowrap">{hora.format(p.criadoEm)}</td>
                   <td>{p.clienteNome}<span className="block text-xs text-gray-500">{telefoneBR(p.clienteTelefone)}</span></td>
                   <td>{p.bairro}</td>

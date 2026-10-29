@@ -116,3 +116,16 @@ export async function excluirBairro(formData: FormData) {
   await auditar(db, admin.lojaId, admin.uid, n > 0 ? "desativar" : "excluir", "bairro", id);
   revalidarLoja();
 }
+
+/** Troca a chave do programa de impressão (ex.: PC trocado ou chave vazada). O programa antigo para de funcionar. */
+export async function gerarNovaChaveImpressao() {
+  const admin = await exigirAdmin();
+  const { randomBytes } = await import("node:crypto");
+  const db = await getDb();
+  await db
+    .update(schema.lojas)
+    .set({ tokenImpressao: randomBytes(24).toString("base64url"), impressoraVistaEm: null })
+    .where(eq(schema.lojas.id, admin.lojaId));
+  await auditar(db, admin.lojaId, admin.uid, "nova_chave", "impressora", admin.lojaId);
+  revalidatePath("/painel/configuracoes");
+}

@@ -2,9 +2,10 @@ import { asc, eq } from "drizzle-orm";
 import { getDb, schema } from "@/db";
 import { exigirAdmin } from "@/lib/auth";
 import { FORMAS_DISPONIVEIS, ROTULO_PAGAMENTO, telefoneBR } from "@/lib/dominio";
+import { impressoraConectada } from "@/lib/impressao";
 import { ActionForm } from "@/components/action-form";
 import { Cabecalho, Campo } from "@/components/ui";
-import { excluirBairro, salvarBairro, salvarHorarios, salvarLoja } from "./actions";
+import { excluirBairro, gerarNovaChaveImpressao, salvarBairro, salvarHorarios, salvarLoja } from "./actions";
 
 export const metadata = { title: "Configurações — Painel" };
 
@@ -90,6 +91,32 @@ export default async function ConfiguracoesPage() {
             })}
           </div>
         </ActionForm>
+      </Secao>
+
+      <Secao titulo="Impressora do balcão" descricao="Um programa no PC da loja busca os pedidos novos e imprime o comprovante sozinho na térmica.">
+        <p className={`mb-4 inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-sm font-semibold ${impressoraConectada(loja.impressoraVistaEm) ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"}`}>
+          <span className={`size-2 rounded-full ${impressoraConectada(loja.impressoraVistaEm) ? "bg-green-600" : "bg-red-600"}`} />
+          {impressoraConectada(loja.impressoraVistaEm)
+            ? "Conectada agora"
+            : loja.impressoraVistaEm
+              ? `Sem contato desde ${new Intl.DateTimeFormat("pt-BR", { timeZone: "America/Sao_Paulo", dateStyle: "short", timeStyle: "short" }).format(loja.impressoraVistaEm)}`
+              : "Programa ainda não instalado"}
+        </p>
+        <ol className="list-decimal space-y-2 pl-5 text-sm text-gray-700">
+          <li>No PC do balcão, instale o <a href="https://nodejs.org/pt" target="_blank" rel="noopener noreferrer" className="link">Node.js</a> (versão LTS) e a impressora Epson com o driver dela.</li>
+          <li>
+            Crie a pasta <code className="rounded bg-gray-100 px-1">C:\Impressora</code> e salve nela os arquivos:{" "}
+            {["agente.js", "imprimir-windows.ps1", "iniciar.bat", "LEIA-ME.txt"].map((f) => (
+              <a key={f} href={`/impressora/${f}`} download className="link mr-2 whitespace-nowrap">{f}</a>
+            ))}
+            e o <a href="/painel/impressora/config" download className="link font-bold">config.json desta loja</a> (já vem com a chave).
+          </li>
+          <li>Abra o <code className="rounded bg-gray-100 px-1">config.json</code> e confira o nome da impressora (como aparece em Impressoras do Windows) ou, se ela for de rede, troque o tipo para <code className="rounded bg-gray-100 px-1">rede</code> e coloque o IP.</li>
+          <li>Dê dois cliques em <code className="rounded bg-gray-100 px-1">iniciar.bat</code>. Para testar: <code className="rounded bg-gray-100 px-1">iniciar.bat teste</code> imprime uma página de teste.</li>
+        </ol>
+        <form action={gerarNovaChaveImpressao} className="mt-4">
+          <button className="botao-perigo">Gerar nova chave (o programa precisará do config.json novo)</button>
+        </form>
       </Secao>
 
       <Secao titulo="Bairros atendidos" descricao={loja.modoTaxa === "bairro" ? "Em uso: cada bairro tem sua taxa." : "Usados só quando a entrega é cobrada por bairro."}>

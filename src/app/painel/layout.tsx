@@ -29,8 +29,8 @@ export default async function PainelLayout({ children }: LayoutProps<"/painel">)
   const grupos = usuario.perfil === "admin" ? [...MENU, MENU_ADMIN] : MENU;
 
   return (
-    <div className="flex min-h-screen flex-col bg-[#f4f5f9] md:flex-row">
-      <aside className="bg-marca-azul-escuro text-blue-100 md:sticky md:top-0 md:h-screen md:w-60 md:shrink-0 md:overflow-y-auto">
+    <div className="flex min-h-screen flex-col bg-[#f4f5f9] md:flex-row print:bg-white">
+      <aside className="bg-marca-azul-escuro text-blue-100 print:hidden md:sticky md:top-0 md:h-screen md:w-60 md:shrink-0 md:overflow-y-auto">
         <div className="flex items-center gap-3 px-5 py-4">
           <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-marca-amarelo font-titulos text-2xl font-extrabold text-marca-azul-escuro">{loja?.nome.split(" ").at(-1)?.[0]}</span>
           <div className="min-w-0">
@@ -62,7 +62,7 @@ export default async function PainelLayout({ children }: LayoutProps<"/painel">)
           </div>
         </nav>
       </aside>
-      <main className="min-w-0 flex-1 p-4 md:p-8">{children}</main>
+      <main className="min-w-0 flex-1 p-4 md:p-8 print:p-0">{children}</main>
     </div>
   );
 }

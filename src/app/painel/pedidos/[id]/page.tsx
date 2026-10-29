@@ -7,7 +7,7 @@ import { PROXIMOS_STATUS, ROTULO_PAGAMENTO, ROTULO_STATUS, telefoneBR } from "@/
 import { moeda } from "@/lib/formato";
 import { linhaItem, linkWhatsApp } from "@/lib/whatsapp";
 import { Cabecalho, Selo } from "@/components/ui";
-import { mudarStatus } from "../../actions";
+import { mudarStatus, reimprimir } from "../../actions";
 
 export const metadata = { title: "Pedido — Painel" };
 
@@ -46,6 +46,23 @@ export default async function PedidoPainelPage({ params }: PageProps<"/painel/pe
             <input name="motivo" className="campo w-48" placeholder="Motivo do cancelamento" maxLength={200} />
             <button className="botao-perigo">Cancelar</button>
           </form>
+        </div>
+      )}
+
+      {p.status !== "aguardando_pagamento" && p.status !== "cancelado" && (
+        <div className="cartao mb-4 flex flex-wrap items-center gap-3 text-sm">
+          <span className="font-medium">
+            {p.impressoEm ? `🖨️ Impresso às ${new Intl.DateTimeFormat("pt-BR", { timeZone: "America/Sao_Paulo", timeStyle: "short" }).format(p.impressoEm)}` : "🖨️ Aguardando impressão"}
+          </span>
+          <div className="ml-auto flex flex-wrap gap-2">
+            {p.impressoEm && (
+              <form action={reimprimir}>
+                <input type="hidden" name="id" value={p.id} />
+                <button className="botao-sec">Reimprimir na impressora</button>
+              </form>
+            )}
+            <a href={`/painel/pedidos/${p.id}/comprovante`} target="_blank" rel="noopener" className="botao-sec">Imprimir pelo navegador</a>
+          </div>
         </div>
       )}
 

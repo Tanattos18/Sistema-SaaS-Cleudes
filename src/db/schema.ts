@@ -58,6 +58,8 @@ export const lojas = pgTable("lojas", {
   mpAccessToken: text("mp_access_token"),
   // Usado pelo programa de impressão instalado no PC da loja.
   tokenImpressao: text("token_impressao").notNull(),
+  // Último contato do programa de impressão: o painel mostra se a impressora está conectada.
+  impressoraVistaEm: timestamp("impressora_vista_em", { withTimezone: true }),
   ativo: boolean("ativo").notNull().default(true),
   criadoEm: criadoEm(),
 });

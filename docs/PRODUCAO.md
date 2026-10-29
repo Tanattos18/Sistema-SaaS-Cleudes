@@ -66,3 +66,12 @@ são lidos de `public/`, os mesmos do sistema completo. Cada `git push` na `main
 <https://tanattos18.github.io/Sistema-SaaS-Cleudes/>
 
 Depois de mudar produtos de demonstração, rode `npm run pages:catalogo` para refazer `site-demo/catalogo.json` e `site-demo/creditos.html`.
+
+## Impressora do balcão
+
+O programa `public/impressora/agente.js` roda no PC da loja (precisa do Node.js) e, a cada 5 segundos, busca em
+`/api/impressao/pendentes` os pedidos novos ainda não impressos, imprime na Epson TM-T88V (ESC/POS, 80 mm) e confirma em
+`/api/impressao/confirmar`. Funciona com a impressora no USB (instalada no Windows) ou na rede (porta 9100).
+
+A instalação passo a passo está no painel, em **Configurações → Impressora do balcão**, de onde se baixa o `config.json`
+já com a chave da loja. Instruções detalhadas no `LEIA-ME.txt` da mesma pasta.
