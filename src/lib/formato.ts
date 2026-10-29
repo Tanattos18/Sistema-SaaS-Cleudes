@@ -17,8 +17,8 @@ export function dataBR(iso: string | null | undefined): string {
 }
 
 /** Hoje no fuso de Brasília, no formato AAAA-MM-DD. */
-export function hojeISO(): string {
-  return new Intl.DateTimeFormat("en-CA", { timeZone: "America/Sao_Paulo" }).format(new Date());
+export function hojeISO(agora = new Date()): string {
+  return new Intl.DateTimeFormat("en-CA", { timeZone: "America/Sao_Paulo" }).format(agora);
 }
 
 export function competenciaAtual(): string {

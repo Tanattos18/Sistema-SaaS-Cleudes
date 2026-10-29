@@ -29,6 +29,10 @@ export const PROXIMOS_STATUS: Record<StatusPedido, StatusPedido[]> = {
   cancelado: [],
 };
 
+/** Formas que o lojista pode ligar. Pagar pelo site depende da integração com o Mercado Pago, ainda não pronta. */
+// Lista escrita à mão (e não filtrada do schema) para este arquivo não puxar o Drizzle para o navegador.
+export const FORMAS_DISPONIVEIS: FormaPagamento[] = ["entrega_pix", "entrega_credito", "entrega_debito", "entrega_vr", "entrega_dinheiro"];
+
 export function pagamentoOnline(forma: FormaPagamento): boolean {
   return forma.startsWith("online_");
 }

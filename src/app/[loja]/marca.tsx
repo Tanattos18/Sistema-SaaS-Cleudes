@@ -58,7 +58,10 @@ export function RodapeLoja({ loja }: { loja: DadosRodape }) {
         <div className="space-y-2 text-sm">
           <p className="font-bold text-white">Formas de pagamento</p>
           <p>Pix, cartões de crédito e débito, vale-refeição e dinheiro na entrega.</p>
-          <Link href="/creditos-imagens" className="inline-block pt-2 text-xs text-blue-200 underline">Créditos das imagens</Link>
+          <p className="flex flex-wrap gap-x-4 pt-2 text-xs">
+            <Link href="/login" className="font-bold text-marca-amarelo underline">Área do lojista</Link>
+            <Link href="/creditos-imagens" className="text-blue-200 underline">Créditos das imagens</Link>
+          </p>
         </div>
       </div>
       <p className="border-t border-white/10 py-4 text-center text-xs text-blue-200">Pedidos online · {loja.nome}</p>

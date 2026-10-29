@@ -9,6 +9,8 @@ import { linhaItem, linkWhatsApp } from "@/lib/whatsapp";
 import { Cabecalho, Selo } from "@/components/ui";
 import { mudarStatus } from "../../actions";
 
+export const metadata = { title: "Pedido — Painel" };
+
 const ACAO: Partial<Record<string, string>> = {
   em_separacao: "Iniciar separação",
   saiu_entrega: "Saiu para entrega",

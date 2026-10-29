@@ -32,6 +32,8 @@ const nextConfig: NextConfig = {
   // então usamos o modelo de cache tradicional (sem Cache Components).
   serverExternalPackages: ["@electric-sql/pglite", "exceljs"],
   poweredByHeader: false,
+  // Importação da planilha de produtos (até 5 MB, mais a folga do multipart).
+  experimental: { serverActions: { bodySizeLimit: "6mb" } },
   async headers() {
     return [
       { source: "/:path*", headers: cabecalhosSeguranca },
