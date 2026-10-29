@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Supermercado Caixeta — Faça seu pedido</title>
+  <meta name="description" content="Açougue, padaria, supermercado, gás e bebidas. Peça pelo celular e receba em casa.">
+  <link rel="stylesheet" href="estilo.css">
+</head>
+<body>
+  <div class="aviso-demo">Versão de demonstração · produtos e preços fictícios</div>
+
+  <div id="tela-catalogo">
+    <header class="topo">
+      <div class="conteudo">
+        <h1>Supermercado Caixeta</h1>
+        <p>Açougue, padaria, supermercado, gás e bebidas. Entregamos na sua casa!</p>
+        <div class="selos">
+          <span id="situacao" class="selo"></span>
+          <span id="minimo"></span>
+          <span id="frete-gratis"></span>
+        </div>
+        <details class="horarios">
+          <summary>Horários</summary>
+          <ul id="lista-horarios"></ul>
+        </details>
+        <input id="busca" type="search" placeholder="Buscar produto…" autocomplete="off">
+      </div>
+      <nav id="categorias" class="categorias"></nav>
+    </header>
+    <main id="produtos" class="conteudo produtos"></main>
+    <button id="barra-carrinho" class="barra-carrinho" hidden>
+      <strong>Ver carrinho</strong><span id="resumo-carrinho"></span>
+    </button>
+  </div>
+
+  <div id="tela-checkout" hidden>
+    <header class="topo">
+      <div class="conteudo linha">
+        <button type="button" class="link-voltar" id="voltar-checkout">← Voltar</button>
+        <h2>Entrega e pagamento</h2>
+      </div>
+    </header>
+    <form id="form-checkout" class="conteudo estreito" novalidate>
+      <section class="cartao">
+        <h3>Seus dados</h3>
+        <label>Nome *<input name="nome" autocomplete="name" required maxlength="80"></label>
+        <label>Telefone / WhatsApp *<input name="telefone" type="tel" inputmode="tel" autocomplete="tel" placeholder="(62) 90000-0000" required></label>
+      </section>
+      <section class="cartao">
+        <h3>Endereço de entrega</h3>
+        <div class="grade-endereco">
+          <label>Rua *<input name="rua" autocomplete="address-line1" required maxlength="120"></label>
+          <label>Número *<input name="numero" required maxlength="20" placeholder="ou S/N"></label>
+        </div>
+        <label>Complemento<input name="complemento" maxlength="80" placeholder="Quadra, lote, apto…"></label>
+        <label>Bairro *<input name="bairro" required maxlength="80"></label>
+        <label>Ponto de referência<input name="referencia" maxlength="150"></label>
+      </section>
+      <section class="cartao">
+        <h3>Pagamento</h3>
+        <p class="rotulo">Pagar na entrega</p>
+        <div id="formas-pagamento" class="opcoes"></div>
+        <p class="nota">Pagamento pelo site (Pix e cartão via Mercado Pago) disponível na versão completa.</p>
+        <div id="bloco-troco" class="bloco-troco" hidden>
+          <label class="check"><input type="checkbox" id="precisa-troco"> Preciso de troco</label>
+          <label id="campo-troco" hidden>Troco para quanto?<input id="troco" inputmode="decimal" placeholder="ex.: 100,00"></label>
+        </div>
+      </section>
+      <section class="cartao">
+        <label>Observações do pedido<textarea name="observacoes" rows="2" maxlength="500" placeholder="ex.: tocar a campainha, entregar no portão"></textarea></label>
+      </section>
+      <section class="cartao" id="totais"></section>
+      <p id="erro-checkout" class="erro" role="alert" hidden></p>
+      <button type="submit" class="botao-principal">Enviar pedido pelo WhatsApp</button>
+    </form>
+  </div>
+
+  <div id="modal" class="fundo" hidden></div>
+  <div id="carrinho" class="fundo" hidden></div>
+
+  <script src="app.js"></script>
+</body>
+</html>

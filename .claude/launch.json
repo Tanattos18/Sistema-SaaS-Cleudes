@@ -1,6 +1,7 @@
 {
   "version": "0.0.1",
   "configurations": [
-    { "name": "pedidos", "runtimeExecutable": "npm", "runtimeArgs": ["run", "dev", "--", "-p", "3010"], "port": 3010 }
+    { "name": "pedidos", "runtimeExecutable": "npm", "runtimeArgs": ["run", "dev", "--", "-p", "3010"], "port": 3010 },
+    { "name": "demo-pages", "runtimeExecutable": "python", "runtimeArgs": ["-m", "http.server", "3020", "-d", "pages"], "port": 3020 }
   ]
 }
