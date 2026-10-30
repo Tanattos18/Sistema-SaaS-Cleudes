@@ -8,7 +8,6 @@ import type { FormaPagamento } from "@/db/schema";
 import { auditar } from "@/lib/auditoria";
 import { exigirAdmin } from "@/lib/auth";
 import { FORMAS_OFERECIDAS, normalizarTelefone } from "@/lib/dominio";
-import { enviarCallMeBot } from "@/lib/aviso-whatsapp";
 import { contaDoToken } from "@/lib/mercadopago";
 import { cifrar } from "@/lib/segredo";
 import { lerForm, zId, zTexto, zValor, type EstadoAcao } from "@/lib/form";
@@ -204,26 +203,14 @@ export async function salvarAssinaturaWebhook(_: EstadoAcao, formData: FormData)
   return { ok: segredo ? "Assinatura salva. Avisos do Mercado Pago sem essa assinatura serão recusados." : "Assinatura removida." };
 }
 
-export async function conectarWhatsApp(_: EstadoAcao, formData: FormData): Promise<EstadoAcao> {
+/** Liga ou desliga o aviso de pedidos no WhatsApp da loja (número oficial da Akylla, pela API da Meta). */
+export async function ligarAvisoWhatsapp(formData: FormData) {
   const admin = await exigirAdmin();
-  const chave = String(formData.get("chave") ?? "").trim();
-  if (!/^\d{4,12}$/.test(chave)) return { erro: "Cole a apikey que o CallMeBot mandou no seu WhatsApp (só números)." };
+  const ligar = formData.get("ligar") === "1";
   const db = await getDb();
-  const [loja] = await db.select({ whatsapp: schema.lojas.whatsapp, nome: schema.lojas.nome }).from(schema.lojas).where(eq(schema.lojas.id, admin.lojaId));
-  const ok = await enviarCallMeBot(loja.whatsapp, chave, `✅ ${loja.nome}: aviso de pedidos no WhatsApp ligado. A partir de agora, cada pedido novo chega aqui sozinho.`);
-  if (!ok) return { erro: "O CallMeBot não aceitou essa apikey para o WhatsApp da loja. Confira o número em Dados da loja e a apikey recebida." };
-  await db.update(schema.lojas).set({ callmebotApiKey: cifrar(chave) }).where(eq(schema.lojas.id, admin.lojaId));
-  await auditar(db, admin.lojaId, admin.uid, "conectar", "whatsapp_aviso", admin.lojaId);
-  revalidarLoja();
-  return { ok: "Ligado! Mandamos uma mensagem de teste para o WhatsApp da loja." };
-}
-
-export async function desconectarWhatsApp() {
-  const admin = await exigirAdmin();
-  const db = await getDb();
-  await db.update(schema.lojas).set({ callmebotApiKey: null }).where(eq(schema.lojas.id, admin.lojaId));
-  await auditar(db, admin.lojaId, admin.uid, "desconectar", "whatsapp_aviso", admin.lojaId);
-  revalidarLoja();
+  await db.update(schema.lojas).set({ avisoWhatsappAtivo: ligar }).where(eq(schema.lojas.id, admin.lojaId));
+  await auditar(db, admin.lojaId, admin.uid, ligar ? "conectar" : "desconectar", "whatsapp_aviso", admin.lojaId);
+  revalidatePath("/painel/configuracoes");
 }
 
 export async function desconectarMercadoPago() {

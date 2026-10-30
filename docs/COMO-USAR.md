@@ -60,14 +60,17 @@ Por segurança, depois de 5 senhas erradas seguidas o login fica bloqueado por u
 
 O pagamento aprovado é confirmado de três formas: pelo aviso do Mercado Pago, pela página do pedido aberta e pelo programa da impressora, que confere a cada 15 segundos. Se uma falhar, as outras liberam o pedido.
 
-### Aviso automático no WhatsApp
+### Avisos de pedido (notificação e WhatsApp)
 
-Em **Configurações da loja → Aviso de pedidos no WhatsApp**:
-1. No celular do WhatsApp da loja, salve o número do robô que aparece em callmebot.com.
-2. Mande para ele: `I allow callmebot to send me messages`. Ele responde com a **apikey**.
-3. Cole a apikey no painel e clique em **Ligar e testar**. Chega uma mensagem de teste.
+Cada pedido confirmado (na entrega, na hora; Pix e cartão, depois de aprovados) avisa o dono sozinho:
 
-A partir daí, cada pedido confirmado chega sozinho no WhatsApp da loja, com itens, total, pagamento, endereço e link. O serviço é gratuito e não oficial; se ficar fora do ar, o pedido continua chegando no painel e na impressora.
+**Notificação no painel (grátis):**
+1. Abra o painel no celular ou no computador que deve receber os avisos. No celular, instale antes: no Android, **Adicionar à tela inicial**; no iPhone, **Compartilhar → Adicionar à Tela de Início**, e abra pelo ícone (no iPhone é obrigatório).
+2. Na tela de **Pedidos** (ou em **Configurações da loja → Avisos de pedido**), toque em **Ativar avisos neste aparelho** e permita as notificações.
+3. Toque em **🔔 Enviar aviso de teste**. A notificação chega com som, mesmo com o painel fechado. Tocar nela abre o pedido.
+4. Repita em cada aparelho que deve receber (o do dono, o do balcão etc.).
+
+**WhatsApp da loja (API oficial da Meta):** em **Configurações da loja → Avisos de pedido**, clique em **Ligar aviso no WhatsApp**. Cada pedido chega como mensagem no WhatsApp cadastrado em **Dados da loja**, enviada pelo número oficial da Akylla. Só aparece depois que a Akylla configurar o número oficial no servidor (ver `docs/PRODUCAO.md`).
 
 ### Impressora do balcão (térmica 80 mm ou impressora comum A4)
 

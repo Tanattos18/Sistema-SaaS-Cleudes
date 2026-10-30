@@ -8,7 +8,7 @@ import { FORMAS_PAGAMENTO, type FormaPagamento } from "@/db/schema";
 import { normalizarTelefone, pagamentoOnline } from "@/lib/dominio";
 import { situacaoLoja } from "@/lib/horario";
 import { horariosDaLoja, lojaPorSlug, regrasDaLoja, urlDoSite, type Loja } from "@/lib/loja";
-import { avisarLojaNoWhatsApp } from "@/lib/aviso-whatsapp";
+import { avisarLoja } from "@/lib/avisos";
 import { criarPix, criarPreferencia, tokenDaLoja } from "@/lib/mercadopago";
 import { calcularPedido, validarPagamento, type ProdutoCatalogo } from "@/lib/pedido";
 import { aplicarPrecosAgendados } from "@/lib/precos";
@@ -136,7 +136,7 @@ export async function fecharPedido(slug: string, entrada: unknown): Promise<Resu
   });
   if (!pagamentoOnline(d.formaPagamento)) {
     // Pagamento na entrega: o pedido já está liberado, então a loja é avisada agora.
-    await avisarLojaNoWhatsApp(db, loja, id);
+    await avisarLoja(db, loja, id);
     return { codigo };
   }
 

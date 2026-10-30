@@ -2,7 +2,7 @@ import { createHmac, timingSafeEqual } from "node:crypto";
 import { and, desc, eq, gt } from "drizzle-orm";
 import { schema, type DB } from "@/db";
 import type { FormaPagamento } from "@/db/schema";
-import { avisarLojaNoWhatsApp } from "./aviso-whatsapp";
+import { avisarLoja } from "./avisos";
 import { decifrar } from "./segredo";
 
 /**
@@ -218,7 +218,7 @@ async function aplicarPagamento(db: DB, loja: Loja, pg: PagamentoMP, agora: Date
       .set({ status: "novo", pagoEm: agora, mpPagamentoId: String(pg.id) })
       .where(and(eq(schema.pedidos.id, pedido.id), eq(schema.pedidos.status, "aguardando_pagamento")))
       .returning({ id: schema.pedidos.id });
-    if (liberados.length) await avisarLojaNoWhatsApp(db, loja, pedido.id);
+    if (liberados.length) await avisarLoja(db, loja, pedido.id);
   } else if (decisao === "ignorar" && !pedido.pagoEm) {
     // Guarda o último pagamento tentado (recusado/pendente), útil para o atendimento.
     await db.update(schema.pedidos).set({ mpPagamentoId: String(pg.id) }).where(eq(schema.pedidos.id, pedido.id));

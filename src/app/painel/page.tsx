@@ -8,6 +8,7 @@ import { impressoraConectada } from "@/lib/impressao";
 import { ROTULO_PAGAMENTO, ROTULO_STATUS, telefoneBR } from "@/lib/dominio";
 import { moeda } from "@/lib/formato";
 import { Cabecalho, Indicador, Selo, Vazio } from "@/components/ui";
+import { AtivarAvisos } from "./avisos";
 import { AutoAtualizar } from "@/components/auto-atualizar";
 
 export const metadata = { title: "Pedidos — Painel" };
@@ -39,6 +40,9 @@ export default async function PainelPage({ searchParams }: PageProps<"/painel">)
           </span>
         }
       />
+      <div className="mb-4">
+        <AtivarAvisos compacto />
+      </div>
       <div className="mb-6 grid grid-cols-2 gap-3 lg:grid-cols-4">
         <Indicador rotulo="Pedidos hoje" valor={String(resumo.pedidosHoje)} />
         <Indicador rotulo="Vendido hoje" valor={moeda(resumo.faturamentoHoje)} detalhe={resumo.pedidosHoje ? `Ticket médio ${moeda(resumo.faturamentoHoje / resumo.pedidosHoje)}` : undefined} />

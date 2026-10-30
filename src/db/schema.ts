@@ -65,8 +65,10 @@ export const lojas = pgTable("lojas", {
   mpConta: text("mp_conta"),
   // Assinatura secreta do webhook do Mercado Pago (criptografada): confere que o aviso veio mesmo dele.
   mpWebhookSecret: text("mp_webhook_secret"),
-  // Chave do CallMeBot (criptografada): manda cada pedido novo, sozinho, para o WhatsApp da loja.
+  // Não usada: o CallMeBot só permite uso pessoal. Fica até uma limpeza do banco.
   callmebotApiKey: text("callmebot_apikey"),
+  // Aviso de cada pedido no WhatsApp da loja pela API oficial da Meta (número da Akylla, configurado no servidor).
+  avisoWhatsappAtivo: boolean("aviso_whatsapp_ativo").notNull().default(false),
   // Usado pelo programa de impressão instalado no PC da loja.
   tokenImpressao: text("token_impressao").notNull(),
   // Último contato do programa de impressão: o painel mostra se a impressora está conectada.
@@ -231,7 +233,7 @@ export const pedidos = pgTable(
     pixCopiaECola: text("pix_copia_e_cola"),
     pixQrCode: text("pix_qr_code"),
     pixExpiraEm: timestamp("pix_expira_em", { withTimezone: true }),
-    // Aviso automático no WhatsApp da loja já enviado (evita mandar duas vezes).
+    // Avisos do pedido (notificação no painel e WhatsApp) já enviados: evita mandar duas vezes.
     whatsappAvisadoEm: timestamp("whatsapp_avisado_em", { withTimezone: true }),
     impressoEm: timestamp("impresso_em", { withTimezone: true }),
     canceladoMotivo: text("cancelado_motivo"),
@@ -278,3 +280,26 @@ export const auditoria = pgTable(
   },
   (t) => [index("auditoria_loja_idx").on(t.lojaId, t.criadoEm)],
 );
+
+/** Aparelhos (celular, computador) que ativaram as notificações de pedido no painel. */
+export const inscricoesPush = pgTable(
+  "inscricoes_push",
+  {
+    id: serial("id").primaryKey(),
+    lojaId: integer("loja_id").notNull().references(() => lojas.id),
+    usuarioId: integer("usuario_id").notNull().references(() => usuarios.id),
+    endpoint: text("endpoint").notNull().unique(),
+    p256dh: text("p256dh").notNull(),
+    auth: text("auth").notNull(),
+    aparelho: text("aparelho"),
+    criadoEm: criadoEm(),
+  },
+  (t) => [index("inscricoes_push_loja_idx").on(t.lojaId)],
+);
+
+/** Chaves geradas pelo próprio sistema (ex.: chaves VAPID das notificações), para ninguém precisar configurar. */
+export const chavesSistema = pgTable("chaves_sistema", {
+  chave: text("chave").primaryKey(),
+  valor: text("valor").notNull(),
+  criadoEm: criadoEm(),
+});

@@ -6,6 +6,7 @@ import { ROTULO_PAGAMENTO, ROTULO_STATUS } from "@/lib/dominio";
 import { moeda } from "@/lib/formato";
 import { horariosDaLoja, lojaPorSlug, urlDoSite } from "@/lib/loja";
 import { linhaItem, linkWhatsApp, mensagemPedido } from "@/lib/whatsapp";
+import { whatsappConfigurado } from "@/lib/whatsapp-meta";
 import { IconeCheck, IconeLocal, IconeWhatsApp } from "@/components/icones";
 import { AutoAtualizar } from "@/components/auto-atualizar";
 import { confirmarPagamento, sincronizarPedido } from "@/lib/mercadopago";
@@ -51,7 +52,7 @@ export default async function PedidoPage({ params, searchParams }: PageProps<"/[
 
   const link = `${urlDoSite()}/${loja.slug}/pedido/${pedido.codigo}`;
   // Com o aviso automático ligado, a loja já recebeu o pedido: o botão só abre a conversa, sem repetir o pedido.
-  const avisoAutomatico = !!loja.callmebotApiKey;
+  const avisoAutomatico = loja.avisoWhatsappAtivo && whatsappConfigurado();
   const whatsapp = linkWhatsApp(
     loja.whatsapp,
     avisoAutomatico ? `Olá! Sobre o meu pedido nº ${pedido.numero}: ${link}` : mensagemPedido(paraMensagem(pedido), link),

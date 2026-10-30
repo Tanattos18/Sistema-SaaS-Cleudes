@@ -75,3 +75,27 @@ O programa `public/impressora/agente.js` roda no PC da loja (precisa do Node.js)
 
 A instalação passo a passo está no painel, em **Configurações → Impressora do balcão**, de onde se baixa o `config.json`
 já com a chave da loja. Instruções detalhadas no `LEIA-ME.txt` da mesma pasta.
+
+## WhatsApp oficial (Meta): número da Akylla que avisa as lojas
+
+Um número só, da Akylla, manda o aviso de pedido para o WhatsApp de todas as lojas que ligarem a opção no painel. A Meta cobra por mensagem (categoria "utilidade"), na conta da Akylla.
+
+1. **Meta Business:** em business.facebook.com, crie (ou use) o portfólio da Akylla Studio e faça a verificação da empresa.
+2. **Aplicativo:** em developers.facebook.com → **Meus apps → Criar app** → tipo **Empresa** → adicione o produto **WhatsApp**. A Meta já dá um **número de teste** gratuito, que manda mensagem para até 5 números cadastrados. Dá para testar com ele antes de ter o número definitivo.
+3. **Número definitivo:** em **WhatsApp → Configuração da API → Adicionar número**, cadastre um chip só para isso (ex.: "Akylla Pedidos"). Esse número **não pode** estar em uso no aplicativo do WhatsApp do celular.
+4. **Modelo de mensagem:** em **WhatsApp Manager → Modelos → Criar**: nome `novo_pedido`, categoria **Utilidade**, idioma **Português (BR)**, com este texto (as 7 variáveis nessa ordem):
+   ```
+   🛒 Novo pedido nº {{1}} na {{2}}
+   Total: {{3}} ({{4}})
+   Cliente: {{5}}, bairro {{6}}
+   Ver o pedido completo: {{7}}
+   ```
+   Envie para aprovação; costuma sair em minutos ou horas.
+5. **Token permanente:** em business.facebook.com → **Configurações → Usuários do sistema → Adicionar** (administrador) → **Gerar token** para o app, com as permissões `whatsapp_business_messaging` e `whatsapp_business_management`, sem validade. Copie o token.
+6. **Na Vercel** (Settings → Environment Variables), cadastre e depois faça **Redeploy**:
+   - `WHATSAPP_TOKEN`: o token do passo 5;
+   - `WHATSAPP_PHONE_NUMBER_ID`: em **WhatsApp → Configuração da API**, o "Identificação do número de telefone" (não é o número em si);
+   - opcionais: `WHATSAPP_MODELO` (padrão `novo_pedido`) e `WHATSAPP_IDIOMA` (padrão `pt_BR`).
+7. No painel da loja: **Configurações → Avisos de pedido → Ligar aviso no WhatsApp** e **Enviar aviso de teste**.
+
+Se a mensagem não chegar, o motivo aparece no teste do painel (ex.: modelo ainda não aprovado, número de destino não cadastrado no número de teste).

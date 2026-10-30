@@ -8,11 +8,10 @@ import { Cabecalho, Campo } from "@/components/ui";
 import { urlDoSite } from "@/lib/loja";
 import {
   conectarMercadoPago,
-  conectarWhatsApp,
   desconectarMercadoPago,
-  desconectarWhatsApp,
   excluirBairro,
   gerarNovaChaveImpressao,
+  ligarAvisoWhatsapp,
   pedirTesteImpressao,
   salvarAssinaturaWebhook,
   salvarBairro,
@@ -21,6 +20,8 @@ import {
   salvarLoja,
 } from "./actions";
 import { CamposImpressora } from "./impressora";
+import { AtivarAvisos } from "../avisos";
+import { whatsappConfigurado } from "@/lib/whatsapp-meta";
 
 export const metadata = { title: "Configurações — Painel" };
 
@@ -40,10 +41,11 @@ function Secao({ titulo, descricao, children }: { titulo: string; descricao?: st
 export default async function ConfiguracoesPage() {
   const admin = await exigirAdmin();
   const db = await getDb();
-  const [[loja], horarios, bairros] = await Promise.all([
+  const [[loja], horarios, bairros, aparelhos] = await Promise.all([
     db.select().from(schema.lojas).where(eq(schema.lojas.id, admin.lojaId)),
     db.select().from(schema.horarios).where(eq(schema.horarios.lojaId, admin.lojaId)),
     db.select().from(schema.bairros).where(eq(schema.bairros.lojaId, admin.lojaId)).orderBy(asc(schema.bairros.nome)),
+    db.select({ aparelho: schema.inscricoesPush.aparelho }).from(schema.inscricoesPush).where(eq(schema.inscricoesPush.lojaId, admin.lojaId)),
   ]);
   const doDia = (d: number) => horarios.find((h) => h.diaSemana === d);
 
@@ -140,35 +142,31 @@ export default async function ConfiguracoesPage() {
         </details>
       </Secao>
 
-      <Secao titulo="Aviso de pedidos no WhatsApp (automático)" descricao="Cada pedido novo chega sozinho no WhatsApp da loja, sem ninguém apertar nada. Pedido pago no site só chega depois de aprovado.">
-        {loja.callmebotApiKey ? (
+      <Secao titulo="Avisos de pedido" descricao="Cada pedido novo avisa o dono sozinho, sem ninguém apertar nada. Pedido pago no site só avisa depois de aprovado.">
+        <h3 className="mb-2 font-semibold text-gray-900">Notificação no painel</h3>
+        <p className="mb-3 text-sm text-gray-600">
+          Ative em cada celular ou computador que deve receber. Grátis. {aparelhos.length ? `Recebendo hoje: ${aparelhos.map((a) => a.aparelho ?? "aparelho").join(", ")}.` : "Nenhum aparelho ativado ainda."}
+        </p>
+        <AtivarAvisos />
+
+        <h3 className="mt-6 mb-2 font-semibold text-gray-900">WhatsApp da loja ({telefoneBR(loja.whatsapp)})</h3>
+        {!whatsappConfigurado() ? (
+          <p className="rounded-xl bg-gray-100 p-3 text-sm text-gray-700">
+            O WhatsApp oficial ainda não está configurado no sistema. Quando estiver, cada pedido também chega como mensagem no WhatsApp da loja, enviada pelo número oficial da Akylla.
+          </p>
+        ) : (
           <div className="flex flex-wrap items-center gap-3">
-            <p className="inline-flex items-center gap-2 rounded-full bg-green-100 px-3 py-1.5 text-sm font-semibold text-green-800">
-              <span className="size-2 rounded-full bg-green-600" /> Ligado: avisos vão para {telefoneBR(loja.whatsapp)}
+            <p className={`inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-sm font-semibold ${loja.avisoWhatsappAtivo ? "bg-green-100 text-green-800" : "bg-amber-100 text-amber-800"}`}>
+              <span className={`size-2 rounded-full ${loja.avisoWhatsappAtivo ? "bg-green-600" : "bg-amber-500"}`} />
+              {loja.avisoWhatsappAtivo ? "Ligado: cada pedido chega no WhatsApp da loja" : "Desligado"}
             </p>
-            <form action={desconectarWhatsApp}>
-              <button className="botao-perigo">Desligar</button>
+            <form action={ligarAvisoWhatsapp}>
+              <input type="hidden" name="ligar" value={loja.avisoWhatsappAtivo ? "0" : "1"} />
+              <button className={loja.avisoWhatsappAtivo ? "botao-perigo" : "botao"}>{loja.avisoWhatsappAtivo ? "Desligar" : "Ligar aviso no WhatsApp"}</button>
             </form>
           </div>
-        ) : (
-          <p className="mb-3 inline-flex items-center gap-2 rounded-full bg-amber-100 px-3 py-1.5 text-sm font-semibold text-amber-800">
-            <span className="size-2 rounded-full bg-amber-500" /> Desligado: o pedido só aparece no painel e na impressora
-          </p>
         )}
-        <details className="mt-4 text-sm" open={!loja.callmebotApiKey}>
-          <summary className="cursor-pointer font-medium text-marca-azul">{loja.callmebotApiKey ? "Trocar a chave" : "Como ligar (uma vez só, de graça)"}</summary>
-          <ol className="mt-2 list-decimal space-y-1 pl-5 text-gray-700">
-            <li>
-              Abra <a href="https://www.callmebot.com/blog/free-api-whatsapp-messages/" target="_blank" rel="noopener noreferrer" className="link">callmebot.com</a> e salve, no celular do WhatsApp da loja ({telefoneBR(loja.whatsapp)}), o número do robô que aparece lá.
-            </li>
-            <li>Mande para ele a mensagem: <code className="rounded bg-gray-100 px-1">I allow callmebot to send me messages</code></li>
-            <li>Ele responde com a sua <strong>apikey</strong> (um número). Cole abaixo: mandamos uma mensagem de teste.</li>
-          </ol>
-          <p className="mt-2 text-xs text-gray-500">Serviço gratuito e não oficial: às vezes o robô fica sem vagas para novos cadastros. A opção oficial é a API do WhatsApp da Meta (paga por mensagem).</p>
-          <ActionForm action={conectarWhatsApp} botao="Ligar e testar" className="mt-3">
-            <input name="chave" inputMode="numeric" className="campo" placeholder="apikey do CallMeBot" autoComplete="off" required aria-label="apikey do CallMeBot" />
-          </ActionForm>
-        </details>
+        <p className="mt-2 text-xs text-gray-500">O número que recebe é o de Dados da loja. O teste do botão “Enviar aviso de teste” também vai para o WhatsApp quando ele estiver ligado.</p>
       </Secao>
 
       <Secao titulo="Horário de funcionamento" descricao="Fora do horário a loja mostra “fechado” e não aceita pedidos.">
