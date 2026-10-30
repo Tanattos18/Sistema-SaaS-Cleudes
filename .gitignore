@@ -46,3 +46,6 @@ next-env.d.ts
 # exemplo de variáveis pode ser versionado
 !.env.example
 
+
+# acessos e senhas (só neste computador)
+ACESSOS-PRIVADO.md
