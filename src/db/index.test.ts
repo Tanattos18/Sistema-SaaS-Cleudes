@@ -8,4 +8,11 @@ describe("URL do banco", () => {
     );
     expect(urlParaPostgresJs("postgres://u:p@localhost:5432/db")).toBe("postgres://u:p@localhost:5432/db");
   });
+
+  it("aceita o valor colado com aspas, com psql na frente ou com DATABASE_URL=", () => {
+    const certa = "postgresql://u:p@ep-x.sa-east-1.aws.neon.tech/neondb?sslmode=require";
+    for (const colada of [`'${certa}'`, `"${certa}"`, `psql '${certa}&channel_binding=require'`, `DATABASE_URL=${certa}`, `  DATABASE_URL="${certa}"  `]) {
+      expect(urlParaPostgresJs(colada)).toBe(certa);
+    }
+  });
 });

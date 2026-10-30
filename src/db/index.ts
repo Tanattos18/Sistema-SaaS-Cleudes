@@ -13,7 +13,14 @@ declare global {
  * que não conhece, e o Postgres recusa a conexão ("unrecognized configuration parameter").
  * O Neon, por exemplo, entrega a URL com "&channel_binding=require".
  */
-export function urlParaPostgresJs(url: string): string {
+export function urlParaPostgresJs(bruta: string): string {
+  // Aceita também o valor colado como o painel do Neon mostra: com aspas, "psql '...'" ou "DATABASE_URL=...".
+  const url = bruta
+    .trim()
+    .replace(/^DATABASE_URL\s*=\s*/i, "")
+    .replace(/^psql\s+/i, "")
+    .replace(/^(['"])(.*)\1$/, "$2")
+    .trim();
   try {
     const u = new URL(url);
     for (const p of ["channel_binding", "gssencmode", "sslcompression", "connect_timeout_ms"]) u.searchParams.delete(p);
