@@ -7,18 +7,34 @@ import { moeda } from "@/lib/formato";
 import { horariosDaLoja, lojaPorSlug, urlDoSite } from "@/lib/loja";
 import { linhaItem, linkWhatsApp, mensagemPedido } from "@/lib/whatsapp";
 import { IconeCheck, IconeLocal, IconeWhatsApp } from "@/components/icones";
+import { AutoAtualizar } from "@/components/auto-atualizar";
+import { confirmarPagamento } from "@/lib/mercadopago";
 import { Logo, RodapeLoja } from "../../marca";
+import { BotaoPagar } from "./pagar";
 
 export const metadata = { title: "Seu pedido" };
 
 const PASSOS = ["novo", "em_separacao", "saiu_entrega", "entregue"] as const;
 
-export default async function PedidoPage({ params }: PageProps<"/[loja]/pedido/[codigo]">) {
+export default async function PedidoPage({ params, searchParams }: PageProps<"/[loja]/pedido/[codigo]">) {
   const { loja: slug, codigo } = await params;
+  const volta = await searchParams;
   const db = await getDb();
   const loja = await lojaPorSlug(db, slug);
-  const pedido = loja && (await pedidoComItens(db, { codigo }));
+  let pedido = loja && (await pedidoComItens(db, { codigo }));
   if (!loja || !pedido || pedido.lojaId !== loja.id) notFound();
+
+  // Voltando do Mercado Pago: confere o pagamento na hora, sem esperar a notificação.
+  const pagamentoId = volta.payment_id ?? volta.collection_id;
+  if (pedido.status === "aguardando_pagamento" && typeof pagamentoId === "string" && /^\d+$/.test(pagamentoId)) {
+    try {
+      const r = await confirmarPagamento(db, loja, pagamentoId);
+      if (r.decisao === "aprovar") pedido = (await pedidoComItens(db, { codigo }))!;
+    } catch (e) {
+      console.error("Conferindo pagamento na volta do Mercado Pago:", (e as Error).message);
+    }
+  }
+  const statusVolta = typeof volta.status === "string" ? volta.status : typeof volta.collection_status === "string" ? volta.collection_status : null;
 
   const [fotos, horarios] = await Promise.all([
     db
@@ -46,9 +62,20 @@ export default async function PedidoPage({ params }: PageProps<"/[loja]/pedido/[
             {pedido.canceladoMotivo && <p className="mt-1">{pedido.canceladoMotivo}</p>}
           </div>
         ) : pedido.status === "aguardando_pagamento" ? (
-          <div className="rounded-3xl bg-marca-amarelo p-6 text-marca-azul-escuro shadow-lg">
-            <p className="font-titulos text-3xl font-extrabold">Pedido nº {pedido.numero}</p>
-            <p className="mt-1 font-semibold">Aguardando a confirmação do pagamento. Assim que for aprovado, seu pedido vai para separação.</p>
+          <div className="space-y-4 rounded-3xl bg-marca-amarelo p-6 text-marca-azul-escuro shadow-lg">
+            <AutoAtualizar segundos={8} />
+            <div>
+              <p className="font-titulos text-3xl font-extrabold">Pedido nº {pedido.numero}</p>
+              {statusVolta === "rejected" || statusVolta === "failure" ? (
+                <p className="mt-1 font-semibold">O pagamento não foi aprovado. Tente de novo, com outro cartão ou com Pix.</p>
+              ) : statusVolta === "pending" || statusVolta === "in_process" ? (
+                <p className="mt-1 font-semibold">Pagamento em análise. Assim que for aprovado, seu pedido vai para a separação (esta página atualiza sozinha).</p>
+              ) : (
+                <p className="mt-1 font-semibold">Falta pagar: {ROTULO_PAGAMENTO[pedido.formaPagamento]} de {moeda(pedido.total)}. Seu pedido só vai para a separação depois do pagamento.</p>
+              )}
+            </div>
+            <BotaoPagar slug={loja.slug} codigo={pedido.codigo} rotulo={`Pagar ${moeda(pedido.total)} agora`} />
+            <p className="text-xs">Pagamento seguro pelo Mercado Pago. Já pagou? Esta página atualiza sozinha em instantes.</p>
           </div>
         ) : (
           <div className="relative overflow-hidden rounded-3xl bg-marca-azul p-6 text-white shadow-lg">

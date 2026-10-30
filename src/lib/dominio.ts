@@ -1,13 +1,25 @@
 import type { FormaPagamento, StatusPedido } from "@/db/schema";
 
 export const ROTULO_PAGAMENTO: Record<FormaPagamento, string> = {
-  online_pix: "Pix (pago no site)",
-  online_cartao: "Cartão (pago no site)",
+  online_pix: "Pix",
+  online_cartao: "Cartão de crédito ou débito",
+  entrega_dinheiro: "Dinheiro",
+  entrega_maquininha: "Maquininha na entrega",
+  // Usadas antes da mudança para pagamento no site; aparecem só em pedidos antigos.
   entrega_pix: "Pix na entrega",
   entrega_credito: "Crédito na entrega",
   entrega_debito: "Débito na entrega",
   entrega_vr: "Vale-refeição na entrega",
-  entrega_dinheiro: "Dinheiro na entrega",
+};
+
+/** As quatro formas que a loja pode oferecer, na ordem em que aparecem para o cliente. */
+export const FORMAS_OFERECIDAS = ["online_pix", "online_cartao", "entrega_dinheiro", "entrega_maquininha"] as const satisfies readonly FormaPagamento[];
+
+export const DETALHE_PAGAMENTO: Record<(typeof FORMAS_OFERECIDAS)[number], { icone: string; texto: string }> = {
+  online_pix: { icone: "⚡", texto: "Pague agora pelo Mercado Pago, aprovação na hora" },
+  online_cartao: { icone: "💳", texto: "Pague agora pelo Mercado Pago, com segurança" },
+  entrega_dinheiro: { icone: "💵", texto: "Pague ao entregador; informe se precisa de troco" },
+  entrega_maquininha: { icone: "📟", texto: "O entregador leva a maquininha (crédito, débito ou vale-refeição)" },
 };
 
 export const ROTULO_STATUS: Record<StatusPedido, string> = {
@@ -28,10 +40,6 @@ export const PROXIMOS_STATUS: Record<StatusPedido, StatusPedido[]> = {
   entregue: [],
   cancelado: [],
 };
-
-/** Formas que o lojista pode ligar. Pagar pelo site depende da integração com o Mercado Pago, ainda não pronta. */
-// Lista escrita à mão (e não filtrada do schema) para este arquivo não puxar o Drizzle para o navegador.
-export const FORMAS_DISPONIVEIS: FormaPagamento[] = ["entrega_pix", "entrega_credito", "entrega_debito", "entrega_vr", "entrega_dinheiro"];
 
 export function pagamentoOnline(forma: FormaPagamento): boolean {
   return forma.startsWith("online_");

@@ -1,5 +1,5 @@
 // Service worker da demonstração: fotos e arquivos do cache; página e catálogo da rede, com reserva.
-const CACHE = "caixeta-demo-v2";
+const CACHE = "caixeta-demo-v3";
 
 self.addEventListener("install", (e) => {
   e.waitUntil(caches.open(CACHE).then((c) => c.addAll(["./", "index.html", "estilo.css", "app.js", "catalogo.json"])).then(() => self.skipWaiting()));

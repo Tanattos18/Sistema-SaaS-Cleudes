@@ -24,7 +24,7 @@ async function main() {
         modoTaxa: "fixa",
         taxaFixa: 5,
         freteGratisAcima: 150,
-        formasPagamento: ["entrega_pix", "entrega_credito", "entrega_debito", "entrega_vr", "entrega_dinheiro"],
+        formasPagamento: ["online_pix", "online_cartao", "entrega_dinheiro", "entrega_maquininha"],
         tokenImpressao: randomBytes(24).toString("base64url"),
       })
       .returning();

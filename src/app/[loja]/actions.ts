@@ -4,10 +4,11 @@ import { randomBytes } from "node:crypto";
 import { and, eq, inArray, max, sql } from "drizzle-orm";
 import { z } from "zod";
 import { getDb, schema } from "@/db";
-import { FORMAS_PAGAMENTO } from "@/db/schema";
+import { FORMAS_PAGAMENTO, type FormaPagamento } from "@/db/schema";
 import { normalizarTelefone, pagamentoOnline } from "@/lib/dominio";
 import { situacaoLoja } from "@/lib/horario";
-import { horariosDaLoja, lojaPorSlug, regrasDaLoja } from "@/lib/loja";
+import { horariosDaLoja, lojaPorSlug, regrasDaLoja, urlDoSite, type Loja } from "@/lib/loja";
+import { criarPreferencia, tokenDaLoja } from "@/lib/mercadopago";
 import { calcularPedido, validarPagamento, type ProdutoCatalogo } from "@/lib/pedido";
 import { aplicarPrecosAgendados } from "@/lib/precos";
 
@@ -40,7 +41,8 @@ const Pedido = z.object({
   trocoPara: z.number().positive().nullable(),
 });
 
-export type ResultadoPedido = { erro: string } | { codigo: string };
+/** `pagamento`: link do Mercado Pago para onde o cliente vai pagar (Pix ou cartão). */
+export type ResultadoPedido = { erro: string } | { codigo: string; pagamento?: string };
 
 export async function fecharPedido(slug: string, entrada: unknown): Promise<ResultadoPedido> {
   const parse = Pedido.safeParse(entrada);
@@ -93,11 +95,11 @@ export async function fecharPedido(slug: string, entrada: unknown): Promise<Resu
   const calc = calcularPedido(d.itens, catalogo, regras, taxaBairro);
   if (typeof calc === "string") return { erro: calc };
   const trocoPara = d.formaPagamento === "entrega_dinheiro" ? d.trocoPara : null;
-  const erroPagamento = validarPagamento(regras, d.formaPagamento, calc.total, trocoPara, !!loja.mpAccessToken);
+  const erroPagamento = validarPagamento(regras, d.formaPagamento, calc.total, trocoPara, !!tokenDaLoja(loja));
   if (erroPagamento) return { erro: erroPagamento };
 
   const codigo = randomBytes(12).toString("base64url");
-  await db.transaction(async (tx) => {
+  const numero = await db.transaction(async (tx) => {
     // Trava a loja para dois pedidos simultâneos não pegarem o mesmo número.
     await tx.execute(sql`select id from lojas where id = ${loja.id} for update`);
     const [{ ultimo }] = await tx
@@ -129,6 +131,46 @@ export async function fecharPedido(slug: string, entrada: unknown): Promise<Resu
       })
       .returning({ id: schema.pedidos.id });
     await tx.insert(schema.pedidoItens).values(calc.itens.map((i) => ({ ...i, pedidoId: pedido.id })));
+    return (ultimo ?? 0) + 1;
   });
-  return { codigo };
+  if (!pagamentoOnline(d.formaPagamento)) return { codigo };
+
+  const link = await abrirPagamento(loja, { numero, codigo, total: calc.total }, d.formaPagamento);
+  if (!link) {
+    await db
+      .update(schema.pedidos)
+      .set({ status: "cancelado", canceladoMotivo: "Não foi possível abrir o pagamento no Mercado Pago." })
+      .where(eq(schema.pedidos.codigo, codigo));
+    return { erro: "Não foi possível abrir o pagamento agora. Tente de novo ou escolha pagar na entrega." };
+  }
+  return { codigo, pagamento: link };
+}
+
+/** Cria o pagamento no Mercado Pago e guarda a referência no pedido; null se o Mercado Pago falhar. */
+async function abrirPagamento(loja: Loja, pedido: { numero: number; codigo: string; total: number }, forma: FormaPagamento): Promise<string | null> {
+  const token = tokenDaLoja(loja);
+  if (!token) return null;
+  try {
+    const p = await criarPreferencia(token, pedido, loja, forma, urlDoSite());
+    const db = await getDb();
+    await db.update(schema.pedidos).set({ mpPreferenciaId: p.id }).where(eq(schema.pedidos.codigo, pedido.codigo));
+    return p.link;
+  } catch (e) {
+    console.error("Mercado Pago:", (e as Error).message);
+    return null;
+  }
+}
+
+/** Novo link de pagamento para um pedido que ainda aguarda (o anterior expira em 30 minutos). */
+export async function pagarDeNovo(slug: string, codigo: string): Promise<ResultadoPedido> {
+  const db = await getDb();
+  const loja = await lojaPorSlug(db, slug);
+  if (!loja) return { erro: "Loja não encontrada." };
+  const [p] = await db
+    .select({ numero: schema.pedidos.numero, total: schema.pedidos.total, status: schema.pedidos.status, forma: schema.pedidos.formaPagamento })
+    .from(schema.pedidos)
+    .where(and(eq(schema.pedidos.codigo, codigo), eq(schema.pedidos.lojaId, loja.id)));
+  if (!p || p.status !== "aguardando_pagamento" || !pagamentoOnline(p.forma)) return { erro: "Este pedido não está aguardando pagamento." };
+  const link = await abrirPagamento(loja, { numero: p.numero, codigo, total: p.total }, p.forma);
+  return link ? { codigo, pagamento: link } : { erro: "Não foi possível abrir o pagamento agora. Tente de novo em instantes." };
 }

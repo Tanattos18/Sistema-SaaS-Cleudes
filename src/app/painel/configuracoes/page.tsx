@@ -1,11 +1,11 @@
 import { asc, eq } from "drizzle-orm";
 import { getDb, schema } from "@/db";
 import { exigirAdmin } from "@/lib/auth";
-import { FORMAS_DISPONIVEIS, ROTULO_PAGAMENTO, telefoneBR } from "@/lib/dominio";
+import { DETALHE_PAGAMENTO, FORMAS_OFERECIDAS, ROTULO_PAGAMENTO, telefoneBR } from "@/lib/dominio";
 import { impressoraConectada } from "@/lib/impressao";
 import { ActionForm } from "@/components/action-form";
 import { Cabecalho, Campo } from "@/components/ui";
-import { excluirBairro, gerarNovaChaveImpressao, salvarBairro, salvarHorarios, salvarLoja } from "./actions";
+import { conectarMercadoPago, desconectarMercadoPago, excluirBairro, gerarNovaChaveImpressao, salvarBairro, salvarHorarios, salvarLoja } from "./actions";
 
 export const metadata = { title: "Configurações — Painel" };
 
@@ -60,21 +60,53 @@ export default async function ConfiguracoesPage() {
           </div>
         </Secao>
 
-        <Secao titulo="Formas de pagamento" descricao="Só as marcadas aparecem para o cliente.">
+        <Secao titulo="Formas de pagamento" descricao="Só as marcadas aparecem para o cliente. Pix e cartão são pagos na hora, pelo Mercado Pago.">
           <div className="grid gap-2 sm:grid-cols-2">
-            {FORMAS_DISPONIVEIS.map((f) => (
-              <label key={f} className="flex items-center gap-2 rounded-md border p-3 text-sm">
-                <input type="checkbox" name="formasPagamento" value={f} defaultChecked={loja.formasPagamento.includes(f)} /> {ROTULO_PAGAMENTO[f]}
-              </label>
-            ))}
-            {(["online_pix", "online_cartao"] as const).map((f) => (
-              <label key={f} className="flex items-center gap-2 rounded-md border border-dashed p-3 text-sm text-gray-400" title="Disponível após a integração com o Mercado Pago">
-                <input type="checkbox" disabled /> {ROTULO_PAGAMENTO[f]} <span className="text-xs">(em breve, Mercado Pago)</span>
-              </label>
-            ))}
+            {FORMAS_OFERECIDAS.map((f) => {
+              const online = f.startsWith("online_");
+              return (
+                <label key={f} className="flex items-start gap-3 rounded-md border p-3 text-sm">
+                  <input type="checkbox" name="formasPagamento" value={f} defaultChecked={loja.formasPagamento.includes(f)} className="mt-1" />
+                  <span>
+                    <span className="font-medium">{DETALHE_PAGAMENTO[f].icone} {ROTULO_PAGAMENTO[f]}</span>
+                    <span className="block text-xs text-gray-500">{DETALHE_PAGAMENTO[f].texto}</span>
+                    {online && !loja.mpAccessToken && <span className="block text-xs font-semibold text-amber-700">Só aparece depois de conectar o Mercado Pago (abaixo)</span>}
+                  </span>
+                </label>
+              );
+            })}
           </div>
         </Secao>
       </ActionForm>
+
+      <Secao titulo="Mercado Pago (Pix e cartão pelo site)" descricao="O dinheiro dos pedidos pagos no site cai direto na conta Mercado Pago da loja.">
+        {loja.mpAccessToken ? (
+          <div className="flex flex-wrap items-center gap-3">
+            <p className="inline-flex items-center gap-2 rounded-full bg-green-100 px-3 py-1.5 text-sm font-semibold text-green-800">
+              <span className="size-2 rounded-full bg-green-600" /> Conectado: {loja.mpConta ?? "conta Mercado Pago"}
+            </p>
+            <form action={desconectarMercadoPago}>
+              <button className="botao-perigo">Desconectar</button>
+            </form>
+          </div>
+        ) : (
+          <p className="mb-3 inline-flex items-center gap-2 rounded-full bg-amber-100 px-3 py-1.5 text-sm font-semibold text-amber-800">
+            <span className="size-2 rounded-full bg-amber-500" /> Não conectado: o cliente só vê dinheiro e maquininha
+          </p>
+        )}
+        <details className="mt-4 text-sm" open={!loja.mpAccessToken}>
+          <summary className="cursor-pointer font-medium text-marca-azul">{loja.mpAccessToken ? "Trocar a conta conectada" : "Como conectar"}</summary>
+          <ol className="mt-2 list-decimal space-y-1 pl-5 text-gray-700">
+            <li>Entre em <a href="https://www.mercadopago.com.br/developers/panel/app" target="_blank" rel="noopener noreferrer" className="link">mercadopago.com.br/developers</a> com a conta Mercado Pago da loja.</li>
+            <li>Clique em <strong>Criar aplicação</strong> (nome: o da loja; solução: pagamentos online, Checkout Pro).</li>
+            <li>Na aplicação, abra <strong>Credenciais de produção</strong> e copie o <strong>Access Token</strong> (começa com APP_USR-).</li>
+            <li>Cole abaixo e salve. Para testar sem dinheiro de verdade, use as credenciais de teste.</li>
+          </ol>
+          <ActionForm action={conectarMercadoPago} botao="Conectar e testar" className="mt-3">
+            <input name="token" type="password" className="campo" placeholder="APP_USR-..." autoComplete="off" required aria-label="Access Token do Mercado Pago" />
+          </ActionForm>
+        </details>
+      </Secao>
 
       <Secao titulo="Horário de funcionamento" descricao="Fora do horário a loja mostra “fechado” e não aceita pedidos.">
         <ActionForm action={salvarHorarios} botao="Salvar horários">

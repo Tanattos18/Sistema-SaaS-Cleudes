@@ -16,15 +16,19 @@ import {
 const valor = (nome: string) => numeric(nome, { precision: 12, scale: 2, mode: "number" });
 const criadoEm = () => timestamp("criado_em", { withTimezone: true }).defaultNow().notNull();
 
-/** Formas de pagamento. "online_*" passam pelo Mercado Pago; as demais são pagas ao entregador. */
+/**
+ * Formas de pagamento. "online_*" são pagas no site pelo Mercado Pago; "entrega_*", ao entregador.
+ * Oferecidas hoje: Pix, cartão, dinheiro e maquininha. As outras ficam só para pedidos antigos.
+ */
 export const FORMAS_PAGAMENTO = [
   "online_pix",
   "online_cartao",
+  "entrega_dinheiro",
+  "entrega_maquininha",
   "entrega_pix",
   "entrega_credito",
   "entrega_debito",
   "entrega_vr",
-  "entrega_dinheiro",
 ] as const;
 export type FormaPagamento = (typeof FORMAS_PAGAMENTO)[number];
 
@@ -55,7 +59,10 @@ export const lojas = pgTable("lojas", {
   freteGratisAcima: valor("frete_gratis_acima"),
   formasPagamento: jsonb("formas_pagamento").$type<FormaPagamento[]>().notNull().default([]),
   // Credencial do Mercado Pago do próprio lojista (o dinheiro cai na conta dele).
+  // Guardada criptografada (src/lib/segredo.ts).
   mpAccessToken: text("mp_access_token"),
+  // Nome da conta conectada, para o lojista conferir quem recebe.
+  mpConta: text("mp_conta"),
   // Usado pelo programa de impressão instalado no PC da loja.
   tokenImpressao: text("token_impressao").notNull(),
   // Último contato do programa de impressão: o painel mostra se a impressora está conectada.

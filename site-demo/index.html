@@ -47,7 +47,7 @@
         <div><p class="rodape-nome">Supermercado Caixeta</p><p>Açougue, padaria, supermercado, gás e bebidas, com entrega na sua casa.</p></div>
         <div><p class="rodape-titulo">Horário</p><ul id="rodape-horarios"></ul></div>
         <div><p class="rodape-titulo">Atendimento</p><a class="botao-whats" href="https://wa.me/5562981779460" target="_blank" rel="noopener">WhatsApp (62) 98177-9460</a></div>
-        <div><p class="rodape-titulo">Formas de pagamento</p><p>Pix, cartões de crédito e débito, vale-refeição e dinheiro na entrega.</p><a class="link-claro" href="creditos.html">Créditos das imagens</a></div>
+        <div><p class="rodape-titulo">Formas de pagamento</p><p>Pix e cartão pagos na hora pelo site, ou dinheiro e maquininha na entrega.</p><a class="link-claro" href="creditos.html">Créditos das imagens</a></div>
       </div>
       <p class="rodape-fim">Versão de demonstração · produtos e preços fictícios</p>
     </footer>
@@ -84,9 +84,8 @@
             <label>Ponto de referência<input name="referencia" maxlength="150"></label>
           </section>
           <section class="bloco"><h2><span>3</span> Pagamento</h2>
-            <p class="rotulo">Pagar na entrega</p>
             <div id="formas-pagamento" class="opcoes-pagamento"></div>
-            <p class="nota">Pagamento pelo site (Pix e cartão via Mercado Pago) disponível na versão completa.</p>
+            <p id="aviso-online" class="aviso-online" hidden>🔒 Ao confirmar, você paga na página segura do Mercado Pago e o pedido vai direto para a loja separar.</p>
             <div id="bloco-troco" class="bloco-troco" hidden>
               <label class="check"><input type="checkbox" id="precisa-troco"> Preciso de troco</label>
               <label id="campo-troco" hidden>Troco para quanto?<input id="troco" inputmode="decimal" placeholder="ex.: 100,00"></label>
@@ -100,7 +99,7 @@
           <div class="resumo-total">
             <div id="totais"></div>
             <p id="erro-checkout" class="erro" role="alert" hidden></p>
-            <button type="submit" class="botao-principal">Enviar pedido pelo WhatsApp</button>
+            <button type="submit" class="botao-principal" id="botao-enviar">Enviar pedido pelo WhatsApp</button>
           </div>
         </aside>
       </form>

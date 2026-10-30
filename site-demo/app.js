@@ -12,12 +12,12 @@ const LOJA = {
     { dia: 0, abre: "06:00", fecha: "11:00" },
     ...[1, 2, 3, 4, 5, 6].map((dia) => ({ dia, abre: "06:00", fecha: "20:00" })),
   ],
+  // [ícone, nome, explicação, pago no site?]
   formas: [
-    ["⚡", "Pix na entrega"],
-    ["💳", "Crédito na entrega"],
-    ["💳", "Débito na entrega"],
-    ["🍽️", "Vale-refeição na entrega"],
-    ["💵", "Dinheiro na entrega"],
+    ["⚡", "Pix", "Pague agora pelo Mercado Pago, aprovação na hora", true],
+    ["💳", "Cartão de crédito ou débito", "Pague agora pelo Mercado Pago, com segurança", true],
+    ["💵", "Dinheiro", "Pague ao entregador; informe se precisa de troco", false],
+    ["📟", "Maquininha na entrega", "O entregador leva a maquininha (crédito, débito ou vale-refeição)", false],
   ],
 };
 const VALOR_MIN_PESO = 5;
@@ -391,7 +391,7 @@ function totais() {
 function abrirCheckout() {
   const dados = ler("demo:cliente", {});
   for (const [k, v] of Object.entries(dados)) if (form.elements[k]) form.elements[k].value = v;
-  $("#formas-pagamento").innerHTML = LOJA.formas.map(([ic, f], i) => `<label class="opcao ${forma === f ? "ativo" : ""}"><input type="radio" name="forma" value="${i}" ${forma === f ? "checked" : ""}><span aria-hidden="true">${ic}</span> ${f}</label>`).join("");
+  $("#formas-pagamento").innerHTML = LOJA.formas.map(([ic, f, txt], i) => `<label class="opcao ${forma === f ? "ativo" : ""}"><input type="radio" name="forma" value="${i}" ${forma === f ? "checked" : ""}><span class="ico-pag" aria-hidden="true">${ic}</span><span><b>${f}</b><small>${txt}</small></span></label>`).join("");
   $("#resumo-itens").innerHTML = itens.map((i) => {
     const p = porId.get(i.produtoId);
     const r = calcularItem(i, p);
@@ -418,8 +418,10 @@ $("#voltar-checkout").addEventListener("click", () => {
 });
 $("#formas-pagamento").addEventListener("change", (e) => {
   forma = LOJA.formas[Number(e.target.value)][1];
+  $("#aviso-online").hidden = !pagoNoSite();
+  $("#botao-enviar").textContent = pagoNoSite() ? `Pagar ${moeda(totais().total)} com ${forma === "Pix" ? "Pix" : "cartão"}` : "Enviar pedido pelo WhatsApp";
   document.querySelectorAll("#formas-pagamento .opcao").forEach((l) => l.classList.toggle("ativo", l.querySelector("input").checked));
-  $("#bloco-troco").hidden = forma !== "Dinheiro na entrega";
+  $("#bloco-troco").hidden = forma !== "Dinheiro";
 });
 $("#precisa-troco").addEventListener("change", (e) => { $("#campo-troco").hidden = !e.target.checked; });
 
@@ -446,7 +448,7 @@ form.addEventListener("submit", (e) => {
   const t = totais();
   if (t.sub < LOJA.pedidoMinimo) return erro(`O pedido mínimo é de ${moeda(LOJA.pedidoMinimo)}.`);
   let troco = null;
-  if (forma === "Dinheiro na entrega" && $("#precisa-troco").checked) {
+  if (forma === "Dinheiro" && $("#precisa-troco").checked) {
     troco = numeroBR($("#troco").value);
     if (!(troco > 0)) return erro("Informe para quanto precisa de troco.");
     if (troco < t.total) return erro("O valor para troco precisa ser maior que o total do pedido.");
@@ -465,16 +467,49 @@ form.addEventListener("submit", (e) => {
   }
   linhas.push("", `Subtotal: ${moeda(t.sub)}`, `Entrega: ${t.taxa === 0 ? "grátis" : moeda(t.taxa)}`, `*Total: ${moeda(t.total)}*`);
   if (itens.some((i) => i.valor != null)) linhas.push("_Itens por peso: valor aproximado, conferido na pesagem._");
-  linhas.push("", `*Pagamento:* ${forma}`);
-  if (forma === "Dinheiro na entrega") linhas.push(troco ? `Troco para ${moeda(troco)}` : "Não precisa de troco");
+  linhas.push("", `*Pagamento:* ${forma}${pagoNoSite() ? " (PAGO no site - simulação)" : ""}`);
+  if (forma === "Dinheiro") linhas.push(troco ? `Troco para ${moeda(troco)}` : "Não precisa de troco");
   linhas.push("", `*Cliente:* ${d.nome}`, `*Telefone:* ${telefoneBR(tel)}`, `*Endereço:* ${d.rua}, ${d.numero}${d.complemento ? ` - ${d.complemento}` : ""} - ${d.bairro}`);
   if (d.referencia) linhas.push(`*Referência:* ${d.referencia}`);
   if (d.observacoes) linhas.push(`*Observações:* ${d.observacoes}`);
 
-  itens = [];
-  gravar("demo:carrinho", itens);
-  window.location.href = `https://wa.me/${LOJA.whatsapp}?text=${encodeURIComponent(linhas.join("\n"))}`;
+  const enviar = () => {
+    itens = [];
+    gravar("demo:carrinho", itens);
+    window.location.href = `https://wa.me/${LOJA.whatsapp}?text=${encodeURIComponent(linhas.join("\n"))}`;
+  };
+  // Na versão completa o cliente vai para o Mercado Pago; aqui uma tela simula o pagamento.
+  if (pagoNoSite()) simularPagamento(t.total, enviar);
+  else enviar();
 });
+
+const pagoNoSite = () => !!LOJA.formas.find((f) => f[1] === forma)?.[3];
+
+function simularPagamento(total, aprovado) {
+  const m = $("#modal");
+  const pix = forma === "Pix";
+  m.innerHTML = `<div class="janela mp" role="dialog" aria-modal="true" aria-label="Pagamento">
+    <div class="mp-topo"><strong>Mercado Pago</strong><span>Simulação da demonstração</span></div>
+    <div class="janela-corpo">
+      <p class="mp-valor">${moeda(total)}</p>
+      <p class="preco-ref">Pedido no Supermercado Caixeta · ${pix ? "Pix" : "Cartão de crédito ou débito"}</p>
+      ${pix
+        ? `<div class="mp-qr" aria-hidden="true"></div><p class="nota">Na versão completa aparece aqui o QR Code do Pix (e o código “copia e cola”) gerado pelo Mercado Pago.</p>`
+        : `<div class="mp-cartao"><span>•••• •••• •••• 4242</span><span>VALIDADE 12/30</span></div><p class="nota">Na versão completa o cliente digita o cartão na página segura do Mercado Pago.</p>`}
+      <button type="button" class="botao-confirmar" data-aprovar><span>Simular pagamento aprovado</span><strong>✓</strong></button>
+      <button type="button" class="lnk" data-fechar style="margin-top:12px">Voltar e escolher outra forma</button>
+    </div>
+  </div>`;
+  m.onclick = (e) => {
+    if (e.target === m || e.target.closest("[data-fechar]")) return fecharModal();
+    if (e.target.closest("[data-aprovar]")) {
+      m.querySelector(".janela-corpo").innerHTML = '<p class="mp-ok">✓</p><p class="mp-valor">Pagamento aprovado!</p><p class="preco-ref">O pedido já foi para a loja separar. Abrindo o WhatsApp da loja…</p>';
+      setTimeout(aprovado, 1600);
+    }
+  };
+  m.hidden = false;
+  document.body.style.overflow = "hidden";
+}
 
 // ---------- início ----------
 function iniciar() {

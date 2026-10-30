@@ -270,3 +270,17 @@ main { min-width: 0; container-type: inline-size; }
 .link-claro { color: #bfdbfe; font-size: 12px; }
 .rodape-fim { margin: 0 !important; padding: 16px; border-top: 1px solid rgb(255 255 255 / .1); color: #bfdbfe; font-size: 12px; text-align: center; }
 .sem-foto { display: grid; place-items: center; width: 100%; height: 100%; font-size: 44px; }
+
+/* Formas de pagamento e tela simulada do Mercado Pago */
+.opcao b { display: block; font-weight: 800; }
+.opcao small { display: block; color: var(--cinza); font-size: 12px; font-weight: 400; }
+.ico-pag { display: grid; place-items: center; width: 40px; height: 40px; flex-shrink: 0; border-radius: 12px; background: var(--amarelo-claro); font-size: 20px; }
+.aviso-online { margin: 8px 0 12px; border-radius: 16px; background: #f0fdf4; padding: 12px; color: #14532d; font-size: 14px; }
+.janela.mp { overflow: hidden; }
+.mp-topo { display: flex; justify-content: space-between; align-items: center; background: #009ee3; color: #fff; padding: 14px 20px; }
+.mp-topo span { font-size: 12px; opacity: .85; }
+.mp-valor { margin: 0; color: var(--azul-escuro); font: 800 30px/1.1 var(--titulos); }
+.mp-qr { width: 180px; height: 180px; margin: 16px auto 8px; border-radius: 4px; background: repeating-conic-gradient(#111 0 25%, #fff 0 50%) 0 0 / 24px 24px; outline: 10px solid #fff; box-shadow: 0 0 0 11px #e5e7eb; }
+.mp-cartao { display: flex; flex-direction: column; gap: 18px; margin: 16px 0 8px; border-radius: 16px; background: linear-gradient(135deg, #1d3f94, #0f2557); padding: 20px; color: #fff; font-weight: 700; letter-spacing: .08em; }
+.mp-cartao span:last-child { font-size: 11px; opacity: .8; }
+.mp-ok { display: grid; place-items: center; width: 64px; height: 64px; margin: 8px 0 12px; border-radius: 50%; background: #16a34a; color: #fff; font-size: 34px; }

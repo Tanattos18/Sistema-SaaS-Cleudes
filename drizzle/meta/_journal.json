@@ -15,6 +15,20 @@
       "when": 1793301836835,
       "tag": "0001_impressora",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1793305092982,
+      "tag": "0002_formas_pagamento",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1793305269936,
+      "tag": "0003_conta_mercadopago",
+      "breakpoints": true
     }
   ]
 }

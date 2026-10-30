@@ -1,5 +1,6 @@
 import { and, asc, eq } from "drizzle-orm";
 import { schema, type DB } from "@/db";
+import { FORMAS_OFERECIDAS } from "./dominio";
 import type { RegrasLoja } from "./pedido";
 
 export type Loja = typeof schema.lojas.$inferSelect;
@@ -18,8 +19,8 @@ export function regrasDaLoja(loja: Loja): RegrasLoja {
     modoTaxa: loja.modoTaxa,
     taxaFixa: loja.taxaFixa,
     freteGratisAcima: loja.freteGratisAcima,
-    // Sem Mercado Pago configurado, as opções de pagar no site nem aparecem.
-    formasPagamento: loja.formasPagamento.filter((f) => !f.startsWith("online_") || !!loja.mpAccessToken),
+    // Só as formas atuais; sem Mercado Pago conectado, as de pagar no site nem aparecem.
+    formasPagamento: FORMAS_OFERECIDAS.filter((f) => loja.formasPagamento.includes(f) && (!f.startsWith("online_") || !!loja.mpAccessToken)),
   };
 }
 

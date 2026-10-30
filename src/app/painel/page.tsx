@@ -8,7 +8,7 @@ import { impressoraConectada } from "@/lib/impressao";
 import { ROTULO_PAGAMENTO, ROTULO_STATUS, telefoneBR } from "@/lib/dominio";
 import { moeda } from "@/lib/formato";
 import { Cabecalho, Indicador, Selo, Vazio } from "@/components/ui";
-import { AutoAtualizar } from "./auto-atualizar";
+import { AutoAtualizar } from "@/components/auto-atualizar";
 
 export const metadata = { title: "Pedidos — Painel" };
 

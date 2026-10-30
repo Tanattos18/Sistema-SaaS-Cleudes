@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState, useTransition, type ReactNode } from "react";
 import type { FormaPagamento } from "@/db/schema";
-import { ROTULO_PAGAMENTO, pagamentoOnline, quilos } from "@/lib/dominio";
+import { DETALHE_PAGAMENTO, FORMAS_OFERECIDAS, ROTULO_PAGAMENTO, pagamentoOnline, quilos } from "@/lib/dominio";
 import { moeda } from "@/lib/formato";
 import { calcularItem, calcularPedido, type ItemCarrinho } from "@/lib/pedido";
 import { IconeCheck, IconeVoltar } from "@/components/icones";
@@ -12,15 +12,6 @@ import { CLIENTE_VAZIO, useGuardado, type DadosCliente } from "./carrinho";
 import { Logo } from "./marca";
 import type { DadosVitrine, ProdutoVitrine } from "./vitrine";
 
-const ICONE_PAGAMENTO: Record<FormaPagamento, string> = {
-  online_pix: "⚡",
-  online_cartao: "💳",
-  entrega_pix: "⚡",
-  entrega_credito: "💳",
-  entrega_debito: "💳",
-  entrega_vr: "🍽️",
-  entrega_dinheiro: "💵",
-};
 
 function Secao({ numero, titulo, children }: { numero: number; titulo: string; children: ReactNode }) {
   return (
@@ -66,8 +57,7 @@ export function Checkout({
   const calcSemTaxa = semBairro ? calcularPedido(itens, porId, { ...regras, modoTaxa: "fixa", taxaFixa: 0 }, null) : null;
   const resumo = typeof calc === "string" ? (calcSemTaxa && typeof calcSemTaxa !== "string" ? calcSemTaxa : null) : calc;
 
-  const online = regras.formasPagamento.filter(pagamentoOnline);
-  const naEntrega = regras.formasPagamento.filter((f) => !pagamentoOnline(f));
+  const formas = FORMAS_OFERECIDAS.filter((f) => regras.formasPagamento.includes(f));
   const icone = new Map(dados.categorias.map((c) => [c.id, c.icone ?? "🛒"]));
 
   const campo = (k: keyof DadosCliente) => ({
@@ -92,15 +82,20 @@ export function Checkout({
       });
       if ("erro" in r) return setErro(r.erro);
       concluido();
-      router.push(`/${loja.slug}/pedido/${r.codigo}`);
+      // Pix ou cartão: vai para a página de pagamento do Mercado Pago, que depois volta para o pedido.
+      if (r.pagamento) window.location.href = r.pagamento;
+      else router.push(`/${loja.slug}/pedido/${r.codigo}`);
     });
   }
 
-  const opcao = (f: FormaPagamento) => (
-    <label key={f} className={`flex cursor-pointer items-center gap-3 rounded-2xl border-2 p-3.5 text-sm font-semibold transition ${forma === f ? "border-marca-azul bg-marca-azul-claro" : "border-gray-200 bg-white hover:border-gray-300"}`}>
-      <input type="radio" name="pagamento" className="size-4 accent-marca-azul" checked={forma === f} onChange={() => setForma(f)} />
-      <span className="text-lg" aria-hidden>{ICONE_PAGAMENTO[f]}</span>
-      {ROTULO_PAGAMENTO[f]}
+  const opcao = (f: (typeof FORMAS_OFERECIDAS)[number]) => (
+    <label key={f} className={`flex cursor-pointer items-center gap-3 rounded-2xl border-2 p-4 transition ${forma === f ? "border-marca-azul bg-marca-azul-claro" : "border-gray-200 bg-white hover:border-gray-300"}`}>
+      <input type="radio" name="pagamento" className="size-4 shrink-0 accent-marca-azul" checked={forma === f} onChange={() => setForma(f)} />
+      <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-marca-amarelo-claro text-xl" aria-hidden>{DETALHE_PAGAMENTO[f].icone}</span>
+      <span className="min-w-0">
+        <span className="block font-bold text-gray-900">{ROTULO_PAGAMENTO[f]}</span>
+        <span className="block text-xs text-gray-500">{DETALHE_PAGAMENTO[f].texto}</span>
+      </span>
     </label>
   );
 
@@ -163,17 +158,11 @@ export function Checkout({
             </Secao>
 
             <Secao numero={3} titulo="Pagamento">
-              {online.length > 0 && (
-                <div className="space-y-2">
-                  <p className="rotulo">Pagar agora, pelo site</p>
-                  <div className="grid gap-2 sm:grid-cols-2">{online.map(opcao)}</div>
-                </div>
-              )}
-              {naEntrega.length > 0 && (
-                <div className="space-y-2">
-                  <p className="rotulo">Pagar na entrega</p>
-                  <div className="grid gap-2 sm:grid-cols-2">{naEntrega.map(opcao)}</div>
-                </div>
+              <div className="grid gap-2 sm:grid-cols-2">{formas.map(opcao)}</div>
+              {forma && pagamentoOnline(forma) && (
+                <p className="rounded-2xl bg-green-50 p-3 text-sm text-green-900">
+                  🔒 Ao confirmar, você vai para a página segura do Mercado Pago, paga e volta para acompanhar o pedido. A loja só começa a separar depois que o pagamento é aprovado.
+                </p>
               )}
               {forma === "entrega_dinheiro" && (
                 <div className="rounded-2xl bg-marca-amarelo-claro p-4 text-sm">
@@ -234,7 +223,7 @@ export function Checkout({
               {typeof calc === "string" && !semBairro && <p className="text-red-700">{calc}</p>}
               {erro && <p className="rounded-xl bg-red-50 p-3 text-sm text-red-800" role="alert">{erro}</p>}
               <button type="submit" disabled={enviando || typeof calc === "string"} className="mt-2 w-full rounded-2xl bg-marca-azul py-4 text-base font-bold text-white shadow-lg transition hover:bg-marca-azul-escuro disabled:opacity-40">
-                {enviando ? "Enviando…" : forma && pagamentoOnline(forma) ? "Ir para o pagamento" : "Confirmar pedido"}
+                {enviando ? "Enviando…" : forma === "online_pix" ? `Pagar ${resumo ? moeda(resumo.total) : ""} com Pix` : forma === "online_cartao" ? `Pagar ${resumo ? moeda(resumo.total) : ""} com cartão` : "Confirmar pedido"}
               </button>
             </div>
           </aside>

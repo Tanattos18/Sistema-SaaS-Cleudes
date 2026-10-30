@@ -7,7 +7,9 @@ import { getDb, schema } from "@/db";
 import type { FormaPagamento } from "@/db/schema";
 import { auditar } from "@/lib/auditoria";
 import { exigirAdmin } from "@/lib/auth";
-import { FORMAS_DISPONIVEIS, normalizarTelefone } from "@/lib/dominio";
+import { FORMAS_OFERECIDAS, normalizarTelefone } from "@/lib/dominio";
+import { contaDoToken } from "@/lib/mercadopago";
+import { cifrar } from "@/lib/segredo";
 import { lerForm, zId, zTexto, zValor, type EstadoAcao } from "@/lib/form";
 
 function revalidarLoja() {
@@ -32,10 +34,12 @@ export async function salvarLoja(_: EstadoAcao, formData: FormData): Promise<Est
   if (!dados) return { erro };
   const whatsapp = normalizarTelefone(dados.whatsapp);
   if (!whatsapp) return { erro: "WhatsApp inválido: use o DDD, ex.: (62) 98177-9460." };
-  const formas = formData.getAll("formasPagamento").map(String).filter((f): f is FormaPagamento => (FORMAS_DISPONIVEIS as readonly string[]).includes(f));
-  if (formas.length === 0) return { erro: "Deixe pelo menos uma forma de pagamento ligada." };
-
+  const formas = formData.getAll("formasPagamento").map(String).filter((f): f is FormaPagamento => (FORMAS_OFERECIDAS as readonly string[]).includes(f));
   const db = await getDb();
+  const [{ mp }] = await db.select({ mp: schema.lojas.mpAccessToken }).from(schema.lojas).where(eq(schema.lojas.id, admin.lojaId));
+  // Pix e cartão só valem com o Mercado Pago conectado; sem ele, precisa sobrar uma forma de pagar na entrega.
+  if (!formas.some((f) => !f.startsWith("online_") || mp)) return { erro: "Deixe pelo menos uma forma de pagamento ligada (sem o Mercado Pago conectado, dinheiro ou maquininha)." };
+
   if (dados.modoTaxa === "bairro") {
     const [{ n }] = await db.select({ n: count() }).from(schema.bairros).where(and(eq(schema.bairros.lojaId, admin.lojaId), eq(schema.bairros.ativo, true)));
     if (n === 0) return { erro: "Para cobrar por bairro, cadastre antes pelo menos um bairro (mais abaixo nesta página)." };
@@ -128,4 +132,31 @@ export async function gerarNovaChaveImpressao() {
     .where(eq(schema.lojas.id, admin.lojaId));
   await auditar(db, admin.lojaId, admin.uid, "nova_chave", "impressora", admin.lojaId);
   revalidatePath("/painel/configuracoes");
+}
+
+/** Conecta a conta Mercado Pago da loja: confere a credencial na API e guarda criptografada. */
+export async function conectarMercadoPago(_: EstadoAcao, formData: FormData): Promise<EstadoAcao> {
+  const admin = await exigirAdmin();
+  const token = String(formData.get("token") ?? "").trim();
+  if (!/^(APP_USR|TEST)-[\w-]{20,}$/.test(token)) return { erro: "Cole o Access Token completo (começa com APP_USR- ou TEST-)." };
+  let conta: Awaited<ReturnType<typeof contaDoToken>>;
+  try {
+    conta = await contaDoToken(token);
+  } catch {
+    return { erro: "O Mercado Pago recusou essa credencial. Confira se copiou o Access Token certo." };
+  }
+  const nome = `${conta.nome}${conta.teste ? " (conta de teste)" : ""}`;
+  const db = await getDb();
+  await db.update(schema.lojas).set({ mpAccessToken: cifrar(token), mpConta: nome }).where(eq(schema.lojas.id, admin.lojaId));
+  await auditar(db, admin.lojaId, admin.uid, "conectar", "mercadopago", admin.lojaId, { conta: nome });
+  revalidarLoja();
+  return { ok: `Conectado à conta ${nome}. Pix e cartão já aparecem para o cliente.` };
+}
+
+export async function desconectarMercadoPago() {
+  const admin = await exigirAdmin();
+  const db = await getDb();
+  await db.update(schema.lojas).set({ mpAccessToken: null, mpConta: null }).where(eq(schema.lojas.id, admin.lojaId));
+  await auditar(db, admin.lojaId, admin.uid, "desconectar", "mercadopago", admin.lojaId);
+  revalidarLoja();
 }
