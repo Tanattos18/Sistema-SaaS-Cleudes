@@ -3,7 +3,7 @@
 > As senhas **não** ficam neste arquivo, porque ele vai para o GitHub.
 > Elas estão em **`ACESSOS-PRIVADO.md`**, na raiz da pasta do projeto. Esse arquivo fica só no seu computador (está no `.gitignore`).
 >
-> Custos, preços e o roteiro para novos clientes: [`PROJETO-E-NEGOCIO.md`](PROJETO-E-NEGOCIO.md) (documento interno da Akylla).
+> Custos, preços e o roteiro para novos clientes ficam em `docs/PROJETO-E-NEGOCIO.md`, documento interno da Akylla que também fica só no seu computador.
 
 ## Links
 
