@@ -11,11 +11,11 @@ export async function lojaDaChave(db: DB, cabecalho: string | null) {
   const chave = cabecalho?.match(/^Bearer\s+(\S+)$/i)?.[1];
   if (!chave || chave.length < 20) return undefined;
   const [loja] = await db
-    .select({ id: schema.lojas.id, nome: schema.lojas.nome, token: schema.lojas.tokenImpressao })
+    .select()
     .from(schema.lojas)
     .where(and(eq(schema.lojas.tokenImpressao, chave), eq(schema.lojas.ativo, true)));
   // Comparação em tempo constante, por precaução, depois de achar a loja.
-  if (!loja || !timingSafeEqual(Buffer.from(loja.token), Buffer.from(chave))) return undefined;
+  if (!loja || !timingSafeEqual(Buffer.from(loja.tokenImpressao), Buffer.from(chave))) return undefined;
   return loja;
 }
 

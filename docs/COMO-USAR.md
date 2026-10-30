@@ -2,6 +2,8 @@
 
 > As senhas **não** ficam neste arquivo, porque ele vai para o GitHub.
 > Elas estão em **`ACESSOS-PRIVADO.md`**, na raiz da pasta do projeto. Esse arquivo fica só no seu computador (está no `.gitignore`).
+>
+> Custos, preços e o roteiro para novos clientes: [`PROJETO-E-NEGOCIO.md`](PROJETO-E-NEGOCIO.md) (documento interno da Akylla).
 
 ## Links
 
@@ -24,10 +26,11 @@ A página **/api/saude** mostra se o site está conectado ao banco sem exibir se
 2. Escolhe os produtos. A carne é pedida pelo valor (ex.: R$ 30 de acém), e o gás é a troca do vasilhame.
 3. No carrinho, clica em **Finalizar** e preenche nome, telefone e endereço, que são obrigatórios.
 4. Escolhe como pagar:
-   - **Pix** ou **Cartão de crédito ou débito**: paga na hora, na página do Mercado Pago. O pedido só chega à loja depois que o pagamento é aprovado.
+   - **Pix**: o QR code e o código copia e cola aparecem na própria página do pedido. O cliente paga no app do banco e a página confirma sozinha. O Pix vale por 30 minutos; depois disso, ele gera um novo pelo botão.
+   - **Cartão de crédito ou débito**: paga na página segura do Mercado Pago e volta para o pedido.
    - **Dinheiro**: paga ao entregador e pode pedir troco.
    - **Maquininha na entrega**: o entregador leva a maquininha.
-5. Depois de enviar, aparece a página do pedido com o código, e a loja recebe o aviso pelo WhatsApp.
+5. Com o pedido confirmado (na entrega, na hora; Pix e cartão, depois de aprovados), ele **é impresso sozinho no balcão** e **chega sozinho no WhatsApp da loja**, se o aviso automático estiver ligado. O cliente fica com o link para acompanhar.
 
 Fora do horário de funcionamento, a loja não aceita pedidos. Pedidos abaixo do valor mínimo também são bloqueados.
 
@@ -50,9 +53,21 @@ Por segurança, depois de 5 senhas erradas seguidas o login fica bloqueado por u
 
 ### Ligar o pagamento online (Mercado Pago)
 
-1. No painel do Mercado Pago (link acima), crie uma aplicação e copie o **Access Token**. Use o de **teste** para experimentar e o de **produção** para valer.
-2. No sistema, abra **Configurações da loja → Mercado Pago**, cole o token e salve. Ele fica guardado criptografado.
-3. Enquanto o Mercado Pago não estiver conectado, as opções Pix e Cartão não aparecem para o cliente. Dinheiro e maquininha continuam funcionando.
+1. No painel do Mercado Pago (link acima), crie uma aplicação **só para este sistema** e copie o **Access Token**. Use o de **teste** para experimentar e o de **produção** para valer.
+2. No sistema, abra **Configurações da loja → Mercado Pago**, cole o token e clique em **Conectar e testar**. Ele fica guardado criptografado.
+3. Abra **Aviso automático de pagamento (webhook)**, logo abaixo, e siga os passos: coloque a URL mostrada na aplicação do Mercado Pago (eventos **Order** e **Pagamentos**) e cole a **assinatura secreta** no painel.
+4. Enquanto o Mercado Pago não estiver conectado, as opções Pix e Cartão não aparecem para o cliente. Dinheiro e maquininha continuam funcionando.
+
+O pagamento aprovado é confirmado de três formas: pelo aviso do Mercado Pago, pela página do pedido aberta e pelo programa da impressora, que confere a cada 15 segundos. Se uma falhar, as outras liberam o pedido.
+
+### Aviso automático no WhatsApp
+
+Em **Configurações da loja → Aviso de pedidos no WhatsApp**:
+1. No celular do WhatsApp da loja, salve o número do robô que aparece em callmebot.com.
+2. Mande para ele: `I allow callmebot to send me messages`. Ele responde com a **apikey**.
+3. Cole a apikey no painel e clique em **Ligar e testar**. Chega uma mensagem de teste.
+
+A partir daí, cada pedido confirmado chega sozinho no WhatsApp da loja, com itens, total, pagamento, endereço e link. O serviço é gratuito e não oficial; se ficar fora do ar, o pedido continua chegando no painel e na impressora.
 
 ### Impressora do balcão (Epson TM-T88V, 80 mm)
 

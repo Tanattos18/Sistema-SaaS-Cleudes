@@ -47,7 +47,7 @@ export const lojas = pgTable("lojas", {
   id: serial("id").primaryKey(),
   slug: text("slug").notNull().unique(),
   nome: text("nome").notNull(),
-  // Só dígitos, com DDI: 5562981779460.
+  // Só dígitos, com DDI: 556281517002.
   whatsapp: text("whatsapp").notNull(),
   endereco: text("endereco"),
   mensagemBoasVindas: text("mensagem_boas_vindas"),
@@ -63,6 +63,10 @@ export const lojas = pgTable("lojas", {
   mpAccessToken: text("mp_access_token"),
   // Nome da conta conectada, para o lojista conferir quem recebe.
   mpConta: text("mp_conta"),
+  // Assinatura secreta do webhook do Mercado Pago (criptografada): confere que o aviso veio mesmo dele.
+  mpWebhookSecret: text("mp_webhook_secret"),
+  // Chave do CallMeBot (criptografada): manda cada pedido novo, sozinho, para o WhatsApp da loja.
+  callmebotApiKey: text("callmebot_apikey"),
   // Usado pelo programa de impressão instalado no PC da loja.
   tokenImpressao: text("token_impressao").notNull(),
   // Último contato do programa de impressão: o painel mostra se a impressora está conectada.
@@ -210,6 +214,13 @@ export const pedidos = pgTable(
     pagoEm: timestamp("pago_em", { withTimezone: true }),
     mpPreferenciaId: text("mp_preferencia_id"),
     mpPagamentoId: text("mp_pagamento_id"),
+    // Pix gerado no próprio site (API de Orders do Mercado Pago): QR code e copia e cola.
+    mpOrdemId: text("mp_ordem_id"),
+    pixCopiaECola: text("pix_copia_e_cola"),
+    pixQrCode: text("pix_qr_code"),
+    pixExpiraEm: timestamp("pix_expira_em", { withTimezone: true }),
+    // Aviso automático no WhatsApp da loja já enviado (evita mandar duas vezes).
+    whatsappAvisadoEm: timestamp("whatsapp_avisado_em", { withTimezone: true }),
     impressoEm: timestamp("impresso_em", { withTimezone: true }),
     canceladoMotivo: text("cancelado_motivo"),
     criadoEm: criadoEm(),

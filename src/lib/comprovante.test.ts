@@ -13,7 +13,7 @@ const pedido: PedidoCompleto = {
   rua: "Rua das Flores com um nome bem comprido para quebrar", numeroEndereco: "120", complemento: "Qd 3 Lt 5",
   bairro: "Centro", bairroId: null, referencia: "Perto da praça", observacoes: "Tocar a campainha",
   formaPagamento: "entrega_dinheiro", trocoPara: 250, subtotal: 195.8, taxaEntrega: 0, total: 195.8,
-  pagoEm: null, mpPreferenciaId: null, mpPagamentoId: null, impressoEm: null, canceladoMotivo: null,
+  pagoEm: null, mpPreferenciaId: null, mpPagamentoId: null, mpOrdemId: null, pixCopiaECola: null, pixQrCode: null, pixExpiraEm: null, whatsappAvisadoEm: null, impressoEm: null, canceladoMotivo: null,
   criadoEm: new Date("2026-10-29T17:09:00Z"),
   itens: [
     item({ nome: "Arroz tipo 1 5kg", quantidade: 2, precoUnitario: 27.9, total: 55.8 }),

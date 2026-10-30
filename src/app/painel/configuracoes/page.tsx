@@ -5,7 +5,19 @@ import { DETALHE_PAGAMENTO, FORMAS_OFERECIDAS, ROTULO_PAGAMENTO, telefoneBR } fr
 import { impressoraConectada } from "@/lib/impressao";
 import { ActionForm } from "@/components/action-form";
 import { Cabecalho, Campo } from "@/components/ui";
-import { conectarMercadoPago, desconectarMercadoPago, excluirBairro, gerarNovaChaveImpressao, salvarBairro, salvarHorarios, salvarLoja } from "./actions";
+import { urlDoSite } from "@/lib/loja";
+import {
+  conectarMercadoPago,
+  conectarWhatsApp,
+  desconectarMercadoPago,
+  desconectarWhatsApp,
+  excluirBairro,
+  gerarNovaChaveImpressao,
+  salvarAssinaturaWebhook,
+  salvarBairro,
+  salvarHorarios,
+  salvarLoja,
+} from "./actions";
 
 export const metadata = { title: "Configurações — Painel" };
 
@@ -98,12 +110,60 @@ export default async function ConfiguracoesPage() {
           <summary className="cursor-pointer font-medium text-marca-azul">{loja.mpAccessToken ? "Trocar a conta conectada" : "Como conectar"}</summary>
           <ol className="mt-2 list-decimal space-y-1 pl-5 text-gray-700">
             <li>Entre em <a href="https://www.mercadopago.com.br/developers/panel/app" target="_blank" rel="noopener noreferrer" className="link">mercadopago.com.br/developers</a> com a conta Mercado Pago da loja.</li>
-            <li>Clique em <strong>Criar aplicação</strong> (nome: o da loja; solução: pagamentos online, Checkout Pro).</li>
+            <li>Clique em <strong>Criar aplicação</strong> (nome: o da loja; solução: pagamentos online).</li>
             <li>Na aplicação, abra <strong>Credenciais de produção</strong> e copie o <strong>Access Token</strong> (começa com APP_USR-).</li>
             <li>Cole abaixo e salve. Para testar sem dinheiro de verdade, use as credenciais de teste.</li>
           </ol>
           <ActionForm action={conectarMercadoPago} botao="Conectar e testar" className="mt-3">
             <input name="token" type="password" className="campo" placeholder="APP_USR-..." autoComplete="off" required aria-label="Access Token do Mercado Pago" />
+          </ActionForm>
+        </details>
+        <details className="mt-4 text-sm">
+          <summary className="cursor-pointer font-medium text-marca-azul">
+            Aviso automático de pagamento (webhook) {loja.mpWebhookSecret ? "· assinatura cadastrada ✓" : ""}
+          </summary>
+          <ol className="mt-2 list-decimal space-y-1 pl-5 text-gray-700">
+            <li>Na aplicação do Mercado Pago, abra <strong>Webhooks → Configurar notificações</strong> (modo produção).</li>
+            <li>
+              URL: <code className="rounded bg-gray-100 px-1 break-all">{`${urlDoSite()}/api/pagamentos/mercadopago/${loja.slug}`}</code>
+            </li>
+            <li>Eventos: marque <strong>Order (Mercado Pago)</strong>, para o Pix, e <strong>Pagamentos</strong>, para o cartão. Salve.</li>
+            <li>Copie a <strong>assinatura secreta</strong> que aparece e cole abaixo.</li>
+          </ol>
+          <p className="mt-2 text-xs text-gray-500">Mesmo sem isso o pedido é liberado (a página do pedido e o programa da impressora conferem o pagamento), mas o aviso deixa tudo instantâneo.</p>
+          <ActionForm action={salvarAssinaturaWebhook} botao="Salvar assinatura" className="mt-3">
+            <input name="segredo" type="password" className="campo" placeholder={loja.mpWebhookSecret ? "•••••••• (deixe vazio e salve para remover)" : "assinatura secreta"} autoComplete="off" aria-label="Assinatura secreta do webhook" />
+          </ActionForm>
+        </details>
+      </Secao>
+
+      <Secao titulo="Aviso de pedidos no WhatsApp (automático)" descricao="Cada pedido novo chega sozinho no WhatsApp da loja, sem ninguém apertar nada. Pedido pago no site só chega depois de aprovado.">
+        {loja.callmebotApiKey ? (
+          <div className="flex flex-wrap items-center gap-3">
+            <p className="inline-flex items-center gap-2 rounded-full bg-green-100 px-3 py-1.5 text-sm font-semibold text-green-800">
+              <span className="size-2 rounded-full bg-green-600" /> Ligado: avisos vão para {telefoneBR(loja.whatsapp)}
+            </p>
+            <form action={desconectarWhatsApp}>
+              <button className="botao-perigo">Desligar</button>
+            </form>
+          </div>
+        ) : (
+          <p className="mb-3 inline-flex items-center gap-2 rounded-full bg-amber-100 px-3 py-1.5 text-sm font-semibold text-amber-800">
+            <span className="size-2 rounded-full bg-amber-500" /> Desligado: o pedido só aparece no painel e na impressora
+          </p>
+        )}
+        <details className="mt-4 text-sm" open={!loja.callmebotApiKey}>
+          <summary className="cursor-pointer font-medium text-marca-azul">{loja.callmebotApiKey ? "Trocar a chave" : "Como ligar (uma vez só, de graça)"}</summary>
+          <ol className="mt-2 list-decimal space-y-1 pl-5 text-gray-700">
+            <li>
+              Abra <a href="https://www.callmebot.com/blog/free-api-whatsapp-messages/" target="_blank" rel="noopener noreferrer" className="link">callmebot.com</a> e salve, no celular do WhatsApp da loja ({telefoneBR(loja.whatsapp)}), o número do robô que aparece lá.
+            </li>
+            <li>Mande para ele a mensagem: <code className="rounded bg-gray-100 px-1">I allow callmebot to send me messages</code></li>
+            <li>Ele responde com a sua <strong>apikey</strong> (um número). Cole abaixo: mandamos uma mensagem de teste.</li>
+          </ol>
+          <p className="mt-2 text-xs text-gray-500">Serviço gratuito e não oficial: às vezes o robô fica sem vagas para novos cadastros. A opção oficial é a API do WhatsApp da Meta (paga por mensagem).</p>
+          <ActionForm action={conectarWhatsApp} botao="Ligar e testar" className="mt-3">
+            <input name="chave" inputMode="numeric" className="campo" placeholder="apikey do CallMeBot" autoComplete="off" required aria-label="apikey do CallMeBot" />
           </ActionForm>
         </details>
       </Secao>

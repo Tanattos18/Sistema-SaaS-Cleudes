@@ -16,7 +16,7 @@ export const ROTULO_PAGAMENTO: Record<FormaPagamento, string> = {
 export const FORMAS_OFERECIDAS = ["online_pix", "online_cartao", "entrega_dinheiro", "entrega_maquininha"] as const satisfies readonly FormaPagamento[];
 
 export const DETALHE_PAGAMENTO: Record<(typeof FORMAS_OFERECIDAS)[number], { icone: string; texto: string }> = {
-  online_pix: { icone: "⚡", texto: "Pague agora pelo Mercado Pago, aprovação na hora" },
+  online_pix: { icone: "⚡", texto: "Pague aqui mesmo com QR code ou copia e cola, aprovação na hora" },
   online_cartao: { icone: "💳", texto: "Pague agora pelo Mercado Pago, com segurança" },
   entrega_dinheiro: { icone: "💵", texto: "Pague ao entregador; informe se precisa de troco" },
   entrega_maquininha: { icone: "📟", texto: "O entregador leva a maquininha (crédito, débito ou vale-refeição)" },
@@ -51,7 +51,7 @@ export const VALOR_MAX_PESO = 500;
 export const QTD_MAX_UNIDADES = 99;
 export const MAX_ITENS_PEDIDO = 150;
 
-/** "(62) 98177-9460", "62981779460" → "5562981779460". Vazio se não parecer um celular/fixo brasileiro. */
+/** "(62) 8151-7002", "6281517002" → "556281517002". Vazio se não parecer um celular/fixo brasileiro. */
 export function normalizarTelefone(bruto: string): string {
   let d = bruto.replace(/\D/g, "");
   if (d.startsWith("55") && (d.length === 12 || d.length === 13)) d = d.slice(2);
@@ -59,7 +59,7 @@ export function normalizarTelefone(bruto: string): string {
   return `55${d}`;
 }
 
-/** "5562981779460" → "(62) 98177-9460" */
+/** "556281517002" → "(62) 8151-7002" */
 export function telefoneBR(normalizado: string): string {
   const d = normalizado.replace(/^55/, "");
   if (d.length === 11) return `(${d.slice(0, 2)}) ${d.slice(2, 7)}-${d.slice(7)}`;

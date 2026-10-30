@@ -29,6 +29,13 @@
       "when": 1793305269936,
       "tag": "0003_conta_mercadopago",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1793386333780,
+      "tag": "0004_pix_e_aviso_whatsapp",
+      "breakpoints": true
     }
   ]
 }

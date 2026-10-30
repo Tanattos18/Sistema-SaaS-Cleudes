@@ -74,8 +74,8 @@ describe("pagamento", () => {
 
 describe("telefone", () => {
   it("normaliza para o formato do WhatsApp", () => {
-    expect(normalizarTelefone("(62) 98177-9460")).toBe("5562981779460");
-    expect(normalizarTelefone("+55 62 98177-9460")).toBe("5562981779460");
+    expect(normalizarTelefone("(62) 8151-7002")).toBe("556281517002");
+    expect(normalizarTelefone("+55 62 99999-0000")).toBe("5562999990000");
     expect(normalizarTelefone("1234")).toBe("");
   });
 });

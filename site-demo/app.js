@@ -3,7 +3,7 @@
 "use strict";
 
 const LOJA = {
-  whatsapp: "5562981779460",
+  whatsapp: "556281517002",
   pedidoMinimo: 40,
   taxaFixa: 5,
   freteGratisAcima: 150,
@@ -439,7 +439,7 @@ form.addEventListener("submit", (e) => {
   for (const k of Object.keys(d)) if (typeof d[k] === "string") d[k] = d[k].trim();
   if (d.nome.length < 2) return erro("Informe seu nome.");
   const tel = normalizarTelefone(d.telefone);
-  if (!tel) return erro("Informe um telefone com DDD, ex.: (62) 98177-9460.");
+  if (!tel) return erro("Informe um telefone com DDD, ex.: (62) 99999-0000.");
   if (d.rua.length < 2) return erro("Informe a rua.");
   if (!d.numero) return erro("Informe o número (ou S/N).");
   if (d.bairro.length < 2) return erro("Informe o bairro.");

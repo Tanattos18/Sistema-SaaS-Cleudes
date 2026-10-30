@@ -82,7 +82,7 @@ export function Checkout({
       });
       if ("erro" in r) return setErro(r.erro);
       concluido();
-      // Pix ou cartão: vai para a página de pagamento do Mercado Pago, que depois volta para o pedido.
+      // Cartão: vai para a página do Mercado Pago, que depois volta para o pedido. Pix: o QR code aparece na página do pedido.
       if (r.pagamento) window.location.href = r.pagamento;
       else router.push(`/${loja.slug}/pedido/${r.codigo}`);
     });
@@ -161,7 +161,10 @@ export function Checkout({
               <div className="grid gap-2 sm:grid-cols-2">{formas.map(opcao)}</div>
               {forma && pagamentoOnline(forma) && (
                 <p className="rounded-2xl bg-green-50 p-3 text-sm text-green-900">
-                  🔒 Ao confirmar, você vai para a página segura do Mercado Pago, paga e volta para acompanhar o pedido. A loja só começa a separar depois que o pagamento é aprovado.
+                  🔒 {forma === "online_pix"
+                    ? "Ao confirmar, aparece o QR code e o código Pix copia e cola para você pagar no app do seu banco."
+                    : "Ao confirmar, você vai para a página segura do Mercado Pago, paga e volta para acompanhar o pedido."}{" "}
+                  A loja só começa a separar depois que o pagamento é aprovado.
                 </p>
               )}
               {forma === "entrega_dinheiro" && (

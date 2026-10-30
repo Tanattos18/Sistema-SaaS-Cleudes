@@ -8,9 +8,10 @@ import { horariosDaLoja, lojaPorSlug, urlDoSite } from "@/lib/loja";
 import { linhaItem, linkWhatsApp, mensagemPedido } from "@/lib/whatsapp";
 import { IconeCheck, IconeLocal, IconeWhatsApp } from "@/components/icones";
 import { AutoAtualizar } from "@/components/auto-atualizar";
-import { confirmarPagamento } from "@/lib/mercadopago";
+import { confirmarPagamento, sincronizarPedido } from "@/lib/mercadopago";
 import { Logo, RodapeLoja } from "../../marca";
 import { BotaoPagar } from "./pagar";
+import { PagarComPix } from "./pix";
 
 export const metadata = { title: "Seu pedido" };
 
@@ -24,14 +25,17 @@ export default async function PedidoPage({ params, searchParams }: PageProps<"/[
   let pedido = loja && (await pedidoComItens(db, { codigo }));
   if (!loja || !pedido || pedido.lojaId !== loja.id) notFound();
 
-  // Voltando do Mercado Pago: confere o pagamento na hora, sem esperar a notificação.
-  const pagamentoId = volta.payment_id ?? volta.collection_id;
-  if (pedido.status === "aguardando_pagamento" && typeof pagamentoId === "string" && /^\d+$/.test(pagamentoId)) {
+  // Aguardando pagamento: confere no Mercado Pago na hora (volta do cartão, ou Pix pago com a página aberta),
+  // sem esperar a notificação.
+  if (pedido.status === "aguardando_pagamento") {
+    const pagamentoId = volta.payment_id ?? volta.collection_id;
     try {
-      const r = await confirmarPagamento(db, loja, pagamentoId);
-      if (r.decisao === "aprovar") pedido = (await pedidoComItens(db, { codigo }))!;
+      const r = typeof pagamentoId === "string" && /^\d+$/.test(pagamentoId)
+        ? await confirmarPagamento(db, loja, pagamentoId)
+        : await sincronizarPedido(db, loja, pedido);
+      if (r?.decisao === "aprovar") pedido = (await pedidoComItens(db, { codigo }))!;
     } catch (e) {
-      console.error("Conferindo pagamento na volta do Mercado Pago:", (e as Error).message);
+      console.error("Conferindo pagamento no Mercado Pago:", (e as Error).message);
     }
   }
   const statusVolta = typeof volta.status === "string" ? volta.status : typeof volta.collection_status === "string" ? volta.collection_status : null;
@@ -46,8 +50,15 @@ export default async function PedidoPage({ params, searchParams }: PageProps<"/[
   const foto = new Map(fotos.map((f) => [f.id, f.imagemUrl]));
 
   const link = `${urlDoSite()}/${loja.slug}/pedido/${pedido.codigo}`;
-  const whatsapp = linkWhatsApp(loja.whatsapp, mensagemPedido(paraMensagem(pedido), link));
+  // Com o aviso automático ligado, a loja já recebeu o pedido: o botão só abre a conversa, sem repetir o pedido.
+  const avisoAutomatico = !!loja.callmebotApiKey;
+  const whatsapp = linkWhatsApp(
+    loja.whatsapp,
+    avisoAutomatico ? `Olá! Sobre o meu pedido nº ${pedido.numero}: ${link}` : mensagemPedido(paraMensagem(pedido), link),
+  );
   const passo = PASSOS.indexOf(pedido.status as (typeof PASSOS)[number]);
+  // eslint-disable-next-line react-hooks/purity -- página dinâmica: a hora da requisição decide se o Pix ainda vale
+  const pixValido = pedido.formaPagamento === "online_pix" && !!pedido.pixCopiaECola && !!pedido.pixExpiraEm && pedido.pixExpiraEm.getTime() > Date.now();
 
   return (
     <div className="min-h-screen bg-[#f4f5f9]">
@@ -63,18 +74,28 @@ export default async function PedidoPage({ params, searchParams }: PageProps<"/[
           </div>
         ) : pedido.status === "aguardando_pagamento" ? (
           <div className="space-y-4 rounded-3xl bg-marca-amarelo p-6 text-marca-azul-escuro shadow-lg">
-            <AutoAtualizar segundos={8} />
+            <AutoAtualizar segundos={pixValido ? 5 : 8} />
             <div>
               <p className="font-titulos text-3xl font-extrabold">Pedido nº {pedido.numero}</p>
               {statusVolta === "rejected" || statusVolta === "failure" ? (
                 <p className="mt-1 font-semibold">O pagamento não foi aprovado. Tente de novo, com outro cartão ou com Pix.</p>
               ) : statusVolta === "pending" || statusVolta === "in_process" ? (
                 <p className="mt-1 font-semibold">Pagamento em análise. Assim que for aprovado, seu pedido vai para a separação (esta página atualiza sozinha).</p>
+              ) : pixValido ? (
+                <p className="mt-1 font-semibold">Pague {moeda(pedido.total)} com Pix para confirmar. Assim que o pagamento cair, seu pedido vai para a separação.</p>
               ) : (
                 <p className="mt-1 font-semibold">Falta pagar: {ROTULO_PAGAMENTO[pedido.formaPagamento]} de {moeda(pedido.total)}. Seu pedido só vai para a separação depois do pagamento.</p>
               )}
             </div>
-            <BotaoPagar slug={loja.slug} codigo={pedido.codigo} rotulo={`Pagar ${moeda(pedido.total)} agora`} />
+            {pixValido ? (
+              <PagarComPix copiaECola={pedido.pixCopiaECola!} qrCode={pedido.pixQrCode} expiraEm={pedido.pixExpiraEm!.toISOString()} />
+            ) : (
+              <BotaoPagar
+                slug={loja.slug}
+                codigo={pedido.codigo}
+                rotulo={pedido.formaPagamento === "online_pix" ? `Gerar Pix de ${moeda(pedido.total)}` : `Pagar ${moeda(pedido.total)} agora`}
+              />
+            )}
             <p className="text-xs">Pagamento seguro pelo Mercado Pago. Já pagou? Esta página atualiza sozinha em instantes.</p>
           </div>
         ) : (
@@ -98,9 +119,11 @@ export default async function PedidoPage({ params, searchParams }: PageProps<"/[
 
         {pedido.status === "novo" && (
           <div className="rounded-3xl bg-white p-5 shadow-sm ring-1 ring-black/5">
-            <p className="font-bold text-gray-900">Envie também pelo WhatsApp para falar direto com a loja:</p>
+            <p className="font-bold text-gray-900">
+              {avisoAutomatico ? "A loja já recebeu seu pedido. Precisa falar com ela?" : "Envie também pelo WhatsApp para falar direto com a loja:"}
+            </p>
             <a href={whatsapp} target="_blank" rel="noopener noreferrer" className="mt-3 flex w-full items-center justify-center gap-2 rounded-2xl bg-green-600 py-4 text-lg font-bold text-white shadow-lg hover:bg-green-700">
-              <IconeWhatsApp width={24} height={24} /> Enviar pedido no WhatsApp
+              <IconeWhatsApp width={24} height={24} /> {avisoAutomatico ? "Falar com a loja no WhatsApp" : "Enviar pedido no WhatsApp"}
             </a>
             <p className="mt-2 text-center text-xs text-gray-500">Guarde este link para acompanhar a entrega.</p>
           </div>

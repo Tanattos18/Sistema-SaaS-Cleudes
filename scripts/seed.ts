@@ -17,7 +17,7 @@ async function main() {
       .values({
         slug: "caixeta",
         nome: "Supermercado Caixeta",
-        whatsapp: "5562981779460",
+        whatsapp: "556281517002",
         endereco: "Caixeta Gás e Distribuidora de Bebidas",
         mensagemBoasVindas: "Açougue, padaria, supermercado, gás e bebidas. Entregamos na sua casa!",
         pedidoMinimo: 40,
