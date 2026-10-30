@@ -53,3 +53,31 @@ export async function confirmarImpressao(db: DB, lojaId: number, pedidoId: numbe
 export function impressoraConectada(vistaEm: Date | null, agora = new Date()): boolean {
   return !!vistaEm && agora.getTime() - vistaEm.getTime() < 30_000;
 }
+
+export type ImpressoraEscolhida = { tipo: "windows" | "comum" | "rede"; nome: string | null; ip: string | null; porta: number; copias: number };
+
+/** Impressora escolhida no painel, enviada ao programa a cada consulta; null enquanto ninguém escolheu (vale o config.json). */
+export function impressoraDoPainel(loja: {
+  impressoraTipo: ImpressoraEscolhida["tipo"] | null;
+  impressoraNome: string | null;
+  impressoraIp: string | null;
+  impressoraPorta: number | null;
+  impressoraCopias: number;
+}): ImpressoraEscolhida | null {
+  if (!loja.impressoraTipo) return null;
+  if (loja.impressoraTipo === "rede" ? !loja.impressoraIp : !loja.impressoraNome) return null;
+  return { tipo: loja.impressoraTipo, nome: loja.impressoraNome, ip: loja.impressoraIp, porta: loja.impressoraPorta ?? 9100, copias: loja.impressoraCopias };
+}
+
+/** Lista de impressoras que o programa achou no Windows do balcão (para o painel oferecer na escolha). */
+export async function registrarImpressoras(db: DB, lojaId: number, computador: string, nomes: string[]) {
+  const limpos = [...new Set(nomes.map((n) => String(n).trim().slice(0, 200)).filter(Boolean))].slice(0, 50);
+  await db
+    .update(schema.lojas)
+    .set({ impressorasDisponiveis: limpos, impressoraComputador: computador.trim().slice(0, 100) || null })
+    .where(eq(schema.lojas.id, lojaId));
+}
+
+export async function confirmarTeste(db: DB, lojaId: number) {
+  await db.update(schema.lojas).set({ impressaoTestePedidaEm: null }).where(eq(schema.lojas.id, lojaId));
+}

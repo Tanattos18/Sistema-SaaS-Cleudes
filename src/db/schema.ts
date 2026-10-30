@@ -71,6 +71,18 @@ export const lojas = pgTable("lojas", {
   tokenImpressao: text("token_impressao").notNull(),
   // Último contato do programa de impressão: o painel mostra se a impressora está conectada.
   impressoraVistaEm: timestamp("impressora_vista_em", { withTimezone: true }),
+  // Impressora escolhida no painel (vazio: o programa usa o config.json). "windows" = térmica instalada
+  // no Windows, "comum" = laser/jato de tinta A4, "rede" = térmica com IP (porta 9100).
+  impressoraTipo: text("impressora_tipo", { enum: ["windows", "comum", "rede"] }),
+  impressoraNome: text("impressora_nome"),
+  impressoraIp: text("impressora_ip"),
+  impressoraPorta: integer("impressora_porta"),
+  impressoraCopias: smallint("impressora_copias").notNull().default(1),
+  // Impressoras que o programa encontrou no computador do balcão, para escolher na lista do painel.
+  impressorasDisponiveis: jsonb("impressoras_disponiveis").$type<string[]>(),
+  impressoraComputador: text("impressora_computador"),
+  // Página de teste pedida no painel: o programa imprime na próxima consulta e limpa.
+  impressaoTestePedidaEm: timestamp("impressao_teste_pedida_em", { withTimezone: true }),
   ativo: boolean("ativo").notNull().default(true),
   criadoEm: criadoEm(),
 });

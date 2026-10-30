@@ -2,7 +2,8 @@ PROGRAMA DE IMPRESSAO DO BALCAO
 ================================
 
 O que faz: a cada 5 segundos busca os pedidos novos no sistema e imprime o
-comprovante na termica (Epson TM-T88V). Pedidos pagos pelo site so imprimem
+comprovante na termica (Epson TM-T88V) ou numa impressora comum (laser ou
+jato de tinta, folha A4). Pedidos pagos pelo site so imprimem
 depois que o pagamento e confirmado.
 
 INSTALACAO (uma vez)
@@ -11,10 +12,20 @@ INSTALACAO (uma vez)
    Printer Driver / TM-T88V). Anote o nome que aparece em
    Configuracoes > Bluetooth e dispositivos > Impressoras.
 3. Crie a pasta C:\Impressora e coloque nela: agente.js, imprimir-windows.ps1,
-   iniciar.bat, LEIA-ME.txt e o config.json baixado no painel
+   imprimir-comum.ps1, iniciar.bat, LEIA-ME.txt e o config.json baixado no painel
    (Configuracoes > Impressora do balcao).
-4. Abra o config.json no Bloco de Notas:
+4. Mais facil: deixe o config.json como veio, rode o iniciar.bat e escolha a
+   impressora no painel (Configuracoes > Impressora do balcao). A lista das
+   impressoras deste computador aparece la, e o botao "Imprimir pagina de
+   teste" confere. A escolha do painel vale mais que o config.json.
+   Se preferir configurar aqui, abra o config.json no Bloco de Notas:
    - Impressora no USB: "tipo": "windows" e "nome": o nome exato do passo 2.
+   - Impressora comum (laser/jato de tinta, A4, ex.: HP Laser): "tipo": "comum"
+     e "nome": o nome exato dela no Windows. O comprovante sai numa coluna de
+     cupom no canto da folha.
+   - Impressora compartilhada pela rede do Windows: no config.json cada barra
+     invertida vai dobrada. Ex.: \\SERVIDOR\IMPRESSORA vira
+     "nome": "\\\\SERVIDOR\\IMPRESSORA"
    - Impressora no cabo de rede: "tipo": "rede", "ip": o IP da impressora
      (aparece na folha de status: segure o botao FEED ao ligar) e "porta": 9100.
    - "copias": quantas vias por pedido (ex.: 2 = uma para separar, uma para o entregador).

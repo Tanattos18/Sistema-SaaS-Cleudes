@@ -1,11 +1,13 @@
 #!/usr/bin/env node
 // Programa de impressão do balcão: busca os pedidos novos no sistema e imprime o comprovante
-// na térmica Epson TM-T88V (ESC/POS, bobina de 80 mm). Sem dependências: só o Node.js 18 ou mais novo.
+// na térmica Epson TM-T88V (ESC/POS, bobina de 80 mm) ou numa impressora comum (laser/jato de
+// tinta, folha A4). Sem dependências: só o Node.js 18 ou mais novo.
 //
 //   node agente.js            fica rodando e imprime cada pedido novo
 //   node agente.js teste      imprime uma página de teste e sai
 //
 // Configuração em config.json, na mesma pasta (baixe pronto no painel: Configurações > Impressora).
+// A impressora escolhida no painel (Configurações > Impressora do balcão) vale mais que a do config.json.
 "use strict";
 
 const fs = require("node:fs");
@@ -109,6 +111,24 @@ function enviarWindows(bytes, nome) {
   });
 }
 
+// Impressora comum: manda as linhas para o imprimir-comum.ps1, que desenha o cupom pelo driver do Windows.
+function enviarComum(linhas, nome) {
+  return new Promise((resolve, reject) => {
+    const tmp = path.join(os.tmpdir(), `pedido-${Date.now()}-${Math.random().toString(36).slice(2)}.json`);
+    fs.writeFileSync(tmp, JSON.stringify(linhas), "utf8");
+    execFile(
+      "powershell.exe",
+      ["-NoProfile", "-ExecutionPolicy", "Bypass", "-File", path.join(PASTA, "imprimir-comum.ps1"), "-Impressora", nome, "-Arquivo", tmp],
+      { timeout: 60000, windowsHide: true },
+      (erro, _saida, saidaErro) => {
+        fs.rm(tmp, { force: true }, () => {});
+        if (erro) reject(new Error((saidaErro || erro.message).trim()));
+        else resolve();
+      },
+    );
+  });
+}
+
 function enviarArquivo(bytes, pasta, nome) {
   const destino = path.resolve(PASTA, pasta || "saida");
   fs.mkdirSync(destino, { recursive: true });
@@ -116,12 +136,12 @@ function enviarArquivo(bytes, pasta, nome) {
   return Promise.resolve();
 }
 
-async function imprimir(config, bytes, nome) {
-  const imp = config.impressora;
-  if (imp.tipo === "rede") return enviarRede(bytes, imp.ip, imp.porta);
-  if (imp.tipo === "arquivo") return enviarArquivo(bytes, imp.pasta, nome);
-  if (process.platform !== "win32") throw new Error('O tipo "windows" só funciona no Windows. Use "rede" ou "arquivo".');
-  return enviarWindows(bytes, imp.nome);
+async function imprimir(imp, linhas, nome) {
+  if (imp.tipo === "rede") return enviarRede(montarEscPos(linhas), imp.ip, imp.porta);
+  if (imp.tipo === "arquivo") return enviarArquivo(montarEscPos(linhas), imp.pasta, nome);
+  if (process.platform !== "win32") throw new Error(`O tipo "${imp.tipo}" só funciona no Windows. Use "rede" ou "arquivo".`);
+  if (imp.tipo === "comum") return enviarComum(linhas, imp.nome);
+  return enviarWindows(montarEscPos(linhas), imp.nome);
 }
 
 // ---------- conversa com o sistema ----------
@@ -136,17 +156,59 @@ async function chamar(config, caminho, opcoes = {}) {
   return r.json();
 }
 
-async function ciclo(config) {
-  const { pedidos } = await chamar(config, "/api/impressao/pendentes");
-  for (const p of pedidos) {
-    const bytes = montarEscPos(p.linhas);
-    for (let c = 1; c <= config.copias; c++) await imprimir(config, bytes, `pedido-${p.numero}${config.copias > 1 ? `-via${c}` : ""}`);
-    await chamar(config, "/api/impressao/confirmar", { method: "POST", body: JSON.stringify({ id: p.id }) });
-    registrar(`Pedido nº ${p.numero} impresso${config.copias > 1 ? ` (${config.copias} vias)` : ""}.`);
+function descrever(imp) {
+  return imp.tipo === "rede" ? `rede ${imp.ip}:${imp.porta || 9100}` : imp.tipo === "arquivo" ? "arquivo" : `"${imp.nome}"${imp.tipo === "comum" ? " (impressora comum, A4)" : ""}`;
+}
+
+// Impressora em uso: a escolhida no painel, se houver; senão, a do config.json.
+let impressoraAtual = "";
+function impressoraEfetiva(config, doPainel) {
+  const imp = doPainel ? { ...config.impressora, ...doPainel } : config.impressora;
+  const copias = doPainel ? Math.max(1, Math.min(5, Number(doPainel.copias) || 1)) : config.copias;
+  const descricao = `${descrever(imp)}${copias > 1 ? `, ${copias} vias` : ""}`;
+  if (!impressoraAtual && doPainel) registrar(`Usando a impressora escolhida no painel: ${descricao}`);
+  else if (impressoraAtual && descricao !== impressoraAtual) registrar(`Impressora trocada: ${descricao}`);
+  impressoraAtual = descricao;
+  return { imp, copias };
+}
+
+// Nomes das impressoras instaladas no Windows, para escolher no painel.
+function listarImpressoras() {
+  if (process.platform !== "win32") return Promise.resolve([]);
+  return new Promise((resolve) => {
+    execFile(
+      "powershell.exe",
+      ["-NoProfile", "-Command", "[Console]::OutputEncoding = [Text.Encoding]::UTF8; Get-Printer | Select-Object -ExpandProperty Name"],
+      { timeout: 30000, windowsHide: true },
+      (erro, saida) => resolve(erro ? [] : String(saida).split(/\r?\n/).map((n) => n.trim()).filter(Boolean)),
+    );
+  });
+}
+
+async function informarImpressoras(config) {
+  try {
+    const impressoras = await listarImpressoras();
+    await chamar(config, "/api/impressao/impressoras", { method: "POST", body: JSON.stringify({ computador: os.hostname(), impressoras }) });
+  } catch {
+    // sem conexão agora: tenta de novo na próxima rodada
   }
 }
 
-async function paginaDeTeste(config) {
+async function ciclo(config) {
+  const resposta = await chamar(config, "/api/impressao/pendentes");
+  const { imp, copias } = impressoraEfetiva(config, resposta.impressora);
+  if (resposta.teste) {
+    await paginaDeTeste(imp);
+    await chamar(config, "/api/impressao/confirmar", { method: "POST", body: JSON.stringify({ teste: true }) });
+  }
+  for (const p of resposta.pedidos) {
+    for (let c = 1; c <= copias; c++) await imprimir(imp, p.linhas, `pedido-${p.numero}${copias > 1 ? `-via${c}` : ""}`);
+    await chamar(config, "/api/impressao/confirmar", { method: "POST", body: JSON.stringify({ id: p.id }) });
+    registrar(`Pedido nº ${p.numero} impresso${copias > 1 ? ` (${copias} vias)` : ""}.`);
+  }
+}
+
+async function paginaDeTeste(imp) {
   const linhas = [
     { texto: "TESTE DE IMPRESSÃO", grande: true, centro: true },
     { texto: new Date().toLocaleString("pt-BR"), centro: true },
@@ -157,19 +219,24 @@ async function paginaDeTeste(config) {
     { texto: "-".repeat(48) },
     { texto: "Se esta folha saiu certa, a impressora está pronta.", centro: true },
   ];
-  await imprimir(config, montarEscPos(linhas), "teste");
+  await imprimir(imp, linhas, "teste");
   registrar("Página de teste enviada para a impressora.");
 }
 
 async function principal() {
   const config = lerConfig();
-  if (process.argv.includes("teste")) return paginaDeTeste(config);
+  if (process.argv.includes("teste")) return paginaDeTeste(config.impressora);
 
-  const destino = config.impressora.tipo === "rede" ? `rede ${config.impressora.ip}:${config.impressora.porta || 9100}` : config.impressora.tipo === "arquivo" ? "arquivo" : `"${config.impressora.nome}"`;
-  registrar(`Programa de impressão iniciado. Sistema: ${config.sistema} · Impressora: ${destino}`);
+  registrar(`Programa de impressão iniciado. Sistema: ${config.sistema} · Impressora do config.json: ${descrever(config.impressora)}`);
+  await informarImpressoras(config);
+  let ultimaLista = Date.now();
   let falhas = 0;
   for (;;) {
     try {
+      if (Date.now() - ultimaLista > 10 * 60_000) {
+        ultimaLista = Date.now();
+        await informarImpressoras(config);
+      }
       await ciclo(config);
       if (falhas) registrar("Conexão restabelecida.");
       falhas = 0;

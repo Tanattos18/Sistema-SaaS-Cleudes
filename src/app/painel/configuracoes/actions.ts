@@ -123,6 +123,45 @@ export async function excluirBairro(formData: FormData) {
 }
 
 /** Troca a chave do programa de impressão (ex.: PC trocado ou chave vazada). O programa antigo para de funcionar. */
+const Impressora = z.object({
+  tipo: z.enum(["windows", "comum", "rede"]),
+  nome: z.string().trim().max(200).optional(),
+  ip: z.string().trim().max(60).optional(),
+  porta: z.coerce.number().int().min(1).max(65535).optional(),
+  copias: z.coerce.number().int().min(1).max(5),
+});
+
+/** Impressora escolhida no painel: o programa do balcão passa a usar esta na próxima consulta. */
+export async function salvarImpressora(_: EstadoAcao, formData: FormData): Promise<EstadoAcao> {
+  const admin = await exigirAdmin();
+  const r = Impressora.safeParse(Object.fromEntries([...formData.entries()].filter(([, v]) => v !== "")));
+  if (!r.success) return { erro: "Confira os dados da impressora." };
+  const d = r.data;
+  if (d.tipo === "rede" && !/^[\w.-]+$/.test(d.ip ?? "")) return { erro: "Informe o IP da impressora de rede (ex.: 192.168.0.100)." };
+  if (d.tipo !== "rede" && !d.nome) return { erro: "Escolha a impressora na lista (ou digite o nome exato dela no Windows)." };
+  const db = await getDb();
+  await db
+    .update(schema.lojas)
+    .set({
+      impressoraTipo: d.tipo,
+      impressoraNome: d.tipo === "rede" ? null : d.nome,
+      impressoraIp: d.tipo === "rede" ? d.ip : null,
+      impressoraPorta: d.tipo === "rede" ? (d.porta ?? 9100) : null,
+      impressoraCopias: d.copias,
+    })
+    .where(eq(schema.lojas.id, admin.lojaId));
+  await auditar(db, admin.lojaId, admin.uid, "editar", "impressora", admin.lojaId, d);
+  revalidatePath("/painel/configuracoes");
+  return { ok: "Impressora salva. O programa do balcão troca sozinho em poucos segundos." };
+}
+
+export async function pedirTesteImpressao() {
+  const admin = await exigirAdmin();
+  const db = await getDb();
+  await db.update(schema.lojas).set({ impressaoTestePedidaEm: new Date() }).where(eq(schema.lojas.id, admin.lojaId));
+  revalidatePath("/painel/configuracoes");
+}
+
 export async function gerarNovaChaveImpressao() {
   const admin = await exigirAdmin();
   const { randomBytes } = await import("node:crypto");

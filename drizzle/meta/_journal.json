@@ -36,6 +36,13 @@
       "when": 1793386333780,
       "tag": "0004_pix_e_aviso_whatsapp",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1793390584460,
+      "tag": "0005_escolha_da_impressora",
+      "breakpoints": true
     }
   ]
 }

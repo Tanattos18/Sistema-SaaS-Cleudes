@@ -69,13 +69,15 @@ Em **Configurações da loja → Aviso de pedidos no WhatsApp**:
 
 A partir daí, cada pedido confirmado chega sozinho no WhatsApp da loja, com itens, total, pagamento, endereço e link. O serviço é gratuito e não oficial; se ficar fora do ar, o pedido continua chegando no painel e na impressora.
 
-### Impressora do balcão (Epson TM-T88V, 80 mm)
+### Impressora do balcão (térmica 80 mm ou impressora comum A4)
 
 1. No computador do balcão, instale o **Node.js** (https://nodejs.org, versão LTS).
-2. Numa pasta (ex.: `C:\Impressora`), salve os arquivos `agente.js`, `imprimir-windows.ps1`, `iniciar.bat` e `LEIA-ME.txt`, que estão em https://sistema-saa-s-cleudes.vercel.app/impressora/agente.js (troque o nome no fim do endereço para baixar cada um) ou na pasta `public/impressora` do projeto. Na mesma pasta, salve o **config.json** baixado em **Configurações da loja → Impressora**.
-3. Dê dois cliques em **iniciar.bat**. O painel passa a mostrar a impressora como conectada.
-4. Os pedidos novos (e os pagos, depois de aprovados) saem impressos sozinhos. O passo a passo completo está em `public/impressora/LEIA-ME.txt`.
-5. Se trocar a chave da impressora no painel, baixe o config.json de novo.
+2. Numa pasta (ex.: `C:\Impressora`), salve os arquivos `agente.js`, `imprimir-windows.ps1`, `imprimir-comum.ps1`, `iniciar.bat` e `LEIA-ME.txt`, que estão em https://sistema-saa-s-cleudes.vercel.app/impressora/agente.js (troque o nome no fim do endereço para baixar cada um) ou na pasta `public/impressora` do projeto. Na mesma pasta, salve o **config.json** baixado em **Configurações da loja → Impressora**.
+3. Dê dois cliques em **iniciar.bat**. O painel passa a mostrar **"Programa conectado no computador ..."**.
+4. Em **Configurações da loja → Impressora do balcão → Qual impressora imprime os pedidos**, escolha o tipo (térmica USB, impressora comum A4 ou térmica de rede), a impressora na lista (o programa manda a lista das impressoras instaladas naquele computador) e o número de vias. Salve.
+5. Clique em **🖨️ Imprimir página de teste**. A folha sai em poucos segundos.
+6. A partir daí, os pedidos novos (e os pagos, depois de aprovados) saem impressos sozinhos. Para trocar de impressora depois, é só escolher outra no painel: o programa troca sozinho, sem mexer no computador. O passo a passo completo está em `public/impressora/LEIA-ME.txt`.
+7. Se trocar a chave da impressora no painel, baixe o config.json de novo.
 
 ## Para quem mantém o sistema
 
