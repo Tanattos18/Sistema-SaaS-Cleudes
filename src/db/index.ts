@@ -9,11 +9,27 @@ declare global {
 }
 
 /**
+ * Tira da URL os parâmetros que só o libpq entende. O postgres.js repassa ao servidor todo parâmetro
+ * que não conhece, e o Postgres recusa a conexão ("unrecognized configuration parameter").
+ * O Neon, por exemplo, entrega a URL com "&channel_binding=require".
+ */
+export function urlParaPostgresJs(url: string): string {
+  try {
+    const u = new URL(url);
+    for (const p of ["channel_binding", "gssencmode", "sslcompression", "connect_timeout_ms"]) u.searchParams.delete(p);
+    return u.toString();
+  } catch {
+    return url;
+  }
+}
+
+/**
  * Produção: PostgreSQL via DATABASE_URL.
  * Desenvolvimento sem DATABASE_URL: PGlite (Postgres embutido) gravando em PGLITE_DIR.
  */
 async function conectar(): Promise<DB> {
-  const url = process.env.DATABASE_URL;
+  const original = process.env.DATABASE_URL?.trim();
+  const url = original && urlParaPostgresJs(original);
   if (url) {
     const postgres = (await import("postgres")).default;
     const sql = postgres(url, {
